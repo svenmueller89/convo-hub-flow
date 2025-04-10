@@ -53,11 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return false;
 
     try {
+      // Use type assertion to work with the mailboxes table
       const { data: mailboxes, error } = await supabase
         .from('mailboxes')
         .select('id')
         .eq('user_id', user.id)
-        .limit(1);
+        .limit(1) as any;
 
       if (error) throw error;
 

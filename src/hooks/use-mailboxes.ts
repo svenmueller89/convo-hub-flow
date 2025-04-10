@@ -16,6 +16,7 @@ export const useMailboxes = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      // Use type assertion to work with the mailboxes table
       const { data, error } = await supabase
         .from('mailboxes')
         .select('*')
@@ -47,9 +48,10 @@ export const useMailboxes = () => {
         user_id: user.id
       };
       
+      // Use type assertion to work with the mailboxes table
       const { data, error } = await supabase
         .from('mailboxes')
-        .insert([mailboxData])
+        .insert([mailboxData as any])
         .select()
         .single();
         
@@ -79,9 +81,10 @@ export const useMailboxes = () => {
     mutationFn: async ({ id, formData }: { id: string, formData: Partial<MailboxFormData> }) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Use type assertion to work with the mailboxes table
       const { data, error } = await supabase
         .from('mailboxes')
-        .update(formData)
+        .update(formData as any)
         .eq('id', id)
         .select()
         .single();
@@ -112,6 +115,7 @@ export const useMailboxes = () => {
     mutationFn: async (id: string) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Use type assertion to work with the mailboxes table
       const { error } = await supabase
         .from('mailboxes')
         .delete()
@@ -144,7 +148,7 @@ export const useMailboxes = () => {
       // First, set all mailboxes to non-primary
       const { error: updateError } = await supabase
         .from('mailboxes')
-        .update({ is_primary: false })
+        .update({ is_primary: false } as any)
         .eq('user_id', user.id);
         
       if (updateError) {
@@ -154,7 +158,7 @@ export const useMailboxes = () => {
       // Then set the selected mailbox as primary
       const { data, error } = await supabase
         .from('mailboxes')
-        .update({ is_primary: true })
+        .update({ is_primary: true } as any)
         .eq('id', id)
         .select()
         .single();
