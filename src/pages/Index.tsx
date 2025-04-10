@@ -1,11 +1,19 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { EmailList } from '@/components/conversations/EmailList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
+import { useEmails } from '@/hooks/use-emails';
 
 const Index = () => {
+  const { selectedEmail } = useEmails();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Index page rendered with selectedEmail:', selectedEmail);
+  }, [selectedEmail]);
+  
   return (
     <AppShell>
       <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">

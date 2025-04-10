@@ -81,7 +81,7 @@ const mockEmails: Record<string, Email[]> = {
 const mockCustomers = {
   "1": {
     id: "cust-1",
-    name: "Acme Inc.",
+    name: "Tom Johnson",
     email: "info@acme.com",
     company: "Acme Inc."
   },
@@ -89,6 +89,28 @@ const mockCustomers = {
     id: "cust-2",
     name: "Jane Cooper",
     email: "jane.cooper@example.com"
+  },
+  "3": {
+    id: "cust-3",
+    name: "Globex Corporation",
+    email: "contact@globex.com",
+    company: "Globex Corporation"
+  },
+  "4": {
+    id: "cust-4",
+    name: "Robert Fox",
+    email: "robert.fox@example.com"
+  },
+  "5": {
+    id: "cust-5",
+    name: "Cory Smith",
+    email: "cory.smith@example.com"
+  },
+  "6": {
+    id: "cust-6",
+    name: "Abstergo Ltd.",
+    email: "info@abstergo.com",
+    company: "Abstergo Ltd."
   }
 };
 
@@ -130,11 +152,12 @@ const handler = async (req: Request) => {
     const email = conversationMessages[0];
     
     // Get customer information
-    const customer = mockCustomers[conversationId];
+    const customer = mockCustomers[conversationId] || {
+      id: `cust-unknown-${conversationId}`,
+      name: email.from.split('<')[0].trim(),
+      email: email.from.split('<')[1]?.replace('>', '') || "",
+    };
 
-    // Mark the email as read
-    // In a real implementation, we would update the database or email service
-    
     const response: ConversationDetailResponse = {
       email,
       messages: conversationMessages,

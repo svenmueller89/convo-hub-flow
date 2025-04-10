@@ -79,6 +79,15 @@ const EmailItem: React.FC<EmailItemProps> = ({
 export const EmailList: React.FC = () => {
   const { emails, isLoading, selectedEmail, setSelectedEmail, unreadCount } = useEmails();
   
+  // Debug logging to see what's happening
+  React.useEffect(() => {
+    console.log('EmailList rendering with:', { 
+      emailsCount: emails?.length,
+      selectedEmail,
+      isLoading
+    });
+  }, [emails, selectedEmail, isLoading]);
+  
   if (isLoading) {
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
@@ -96,6 +105,7 @@ export const EmailList: React.FC = () => {
   }
 
   const handleEmailClick = (emailId: string) => {
+    // Make this more obvious with some logging
     console.log('Email clicked:', emailId);
     setSelectedEmail(emailId);
   };

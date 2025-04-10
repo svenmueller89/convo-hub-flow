@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useMailboxes } from '@/hooks/use-mailboxes';
@@ -18,9 +18,9 @@ export const useEmails = () => {
   // Fetch emails using edge function
   const { 
     data, 
-    isLoading, 
-    error, 
-    refetch 
+    isLoading: emailsLoading, 
+    error: emailsError, 
+    refetch: refetchEmails
   } = useQuery({
     queryKey: ['emails', primaryMailbox?.id],
     queryFn: async () => {
@@ -68,7 +68,10 @@ export const useEmails = () => {
   } = useQuery({
     queryKey: ['conversation', selectedEmail],
     queryFn: async () => {
-      if (!selectedEmail) return null;
+      if (!selectedEmail) {
+        console.log('No email selected, skipping conversation fetch');
+        return null;
+      }
       
       try {
         console.log('Fetching conversation for email ID:', selectedEmail);
@@ -108,11 +111,21 @@ export const useEmails = () => {
       }
     },
     enabled: !!selectedEmail && !!data?.emails?.length,
+    retry: 1, // Retry once if it fails
   });
   
   const emails = data?.emails || [];
   const unreadCount = data?.unreadCount || 0;
   const conversation = conversationData || null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('useEmails state:', { 
+      selectedEmail, 
+      conversation: !!conversation,
+      conversationLoading
+    });
+  }, [selectedEmail, conversation, conversationLoading]);
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
@@ -152,20 +165,20 @@ export const useEmails = () => {
     console.log('Selecting email with ID:', emailId);
     if (selectedEmail !== emailId) {
       setSelectedEmail(emailId);
-      // Manually trigger a refetch of the conversation if needed
-      if (selectedEmail) {
-        setTimeout(() => {
-          refetchConversation();
-        }, 0);
-      }
+      // Force a refetch of the conversation when changing selection
+      setTimeout(() => {
+        refetchConversation();
+      }, 0);
     }
   };
+
+  const isLoading = mailboxesLoading || emailsLoading;
 
   return {
     emails,
     isLoading,
-    error,
-    refetch,
+    error: emailsError,
+    refetch: refetchEmails,
     selectedEmail,
     setSelectedEmail: handleSelectEmail,
     getEmailById,

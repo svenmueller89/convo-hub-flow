@@ -6,26 +6,60 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Building, Mail, Phone, ExternalLink, Calendar, MessageSquare } from 'lucide-react';
+import { useEmails } from '@/hooks/use-emails';
 
 export const CustomerInfo: React.FC = () => {
-  // In a real app, this would come from props or context
+  const { conversation, conversationLoading } = useEmails();
+
+  // Show placeholder or loading state when no customer info is available
+  if (conversationLoading) {
+    return (
+      <div className="h-full">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="text-lg">Loading...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Loading customer information...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!conversation || !conversation.customer) {
+    return (
+      <div className="h-full">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="text-lg">Customer Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Select a conversation to view customer details</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Use the customer data from the conversation
   const customer = {
-    name: "Acme Inc.",
-    email: "contact@acmeinc.com",
-    phone: "+1 (555) 123-4567",
-    website: "www.acmeinc.com",
+    name: conversation.customer.company || conversation.customer.name,
+    email: conversation.customer.email,
+    phone: "+1 (555) 123-4567", // Mock data
+    website: "www.acmeinc.com", // Mock data
     status: "Active",
     customerSince: "Jan 2023",
     totalConversations: 12,
     lastContact: "March 1, 2025",
     notes: "Enterprise client, dedicated support representative assigned.",
     recentConversations: [
-      { id: "1", subject: "Website Redesign Quote", date: "March 1, 2025" },
+      { id: conversation.email.conversation_id, subject: conversation.email.subject, date: new Date(conversation.email.date).toLocaleDateString() },
       { id: "2", subject: "Monthly Newsletter Setup", date: "Feb 15, 2025" },
       { id: "3", subject: "Support Subscription Renewal", date: "Jan 28, 2025" }
     ],
     contacts: [
-      { name: "Tom Johnson", role: "Marketing Director", email: "tom@acmeinc.com" },
+      { name: conversation.customer.name, role: "Primary Contact", email: conversation.customer.email },
       { name: "Sarah Lee", role: "CEO", email: "sarah@acmeinc.com" }
     ]
   };
