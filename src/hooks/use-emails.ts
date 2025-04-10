@@ -77,7 +77,7 @@ export const useEmails = () => {
         console.log('Fetching conversation for email ID:', selectedEmail);
         
         // Get conversation ID from the selected email
-        const email = getEmailById(selectedEmail);
+        const email = emails.find(email => email.id === selectedEmail);
         if (!email) {
           console.error('Email not found with ID:', selectedEmail);
           throw new Error('Email not found');
@@ -111,7 +111,6 @@ export const useEmails = () => {
       }
     },
     enabled: !!selectedEmail && !!data?.emails?.length,
-    retry: 1, // Retry once if it fails
   });
   
   const emails = data?.emails || [];
@@ -123,9 +122,10 @@ export const useEmails = () => {
     console.log('useEmails state:', { 
       selectedEmail, 
       conversation: !!conversation,
-      conversationLoading
+      conversationLoading,
+      emailsCount: emails.length
     });
-  }, [selectedEmail, conversation, conversationLoading]);
+  }, [selectedEmail, conversation, conversationLoading, emails.length]);
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
@@ -160,16 +160,10 @@ export const useEmails = () => {
     }
   });
 
-  // Handle email selection - reset conversation if selecting a different email
+  // Handle email selection with improved debugging
   const handleSelectEmail = (emailId: string) => {
     console.log('Selecting email with ID:', emailId);
-    if (selectedEmail !== emailId) {
-      setSelectedEmail(emailId);
-      // Force a refetch of the conversation when changing selection
-      setTimeout(() => {
-        refetchConversation();
-      }, 0);
-    }
+    setSelectedEmail(emailId);
   };
 
   const isLoading = mailboxesLoading || emailsLoading;

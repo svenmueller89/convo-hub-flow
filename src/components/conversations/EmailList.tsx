@@ -104,9 +104,9 @@ export const EmailList: React.FC = () => {
     );
   }
 
+  // This function should directly call setSelectedEmail from the useEmails hook
   const handleEmailClick = (emailId: string) => {
-    // Make this more obvious with some logging
-    console.log('Email clicked:', emailId);
+    console.log('Email clicked in EmailList component:', emailId);
     setSelectedEmail(emailId);
   };
 

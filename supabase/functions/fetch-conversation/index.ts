@@ -74,6 +74,92 @@ const mockEmails: Record<string, Email[]> = {
         }
       ]
     }
+  ],
+  "3": [
+    {
+      id: "3-1",
+      mailbox_id: "1",
+      conversation_id: "3",
+      from: "Globex Corporation <contact@globex.com>",
+      to: ["support@convohub.com"],
+      subject: "Partnership Opportunity",
+      body: "Hello,\n\nWe're interested in exploring a potential partnership with your company. Our team has been impressed with your products and services, and we believe there could be synergies between our organizations.\n\nCould we schedule a meeting next week to discuss this further?\n\nBest regards,\nSidney Huffman\nBusiness Development, Globex Corporation",
+      read: false,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+      attachments: []
+    }
+  ],
+  "4": [
+    {
+      id: "4-1",
+      mailbox_id: "1",
+      conversation_id: "4",
+      from: "Robert Fox <robert.fox@example.com>",
+      to: ["support@convohub.com"],
+      subject: "Invoice #INV-5678",
+      body: "Dear Support Team,\n\nI wanted to confirm that I've received invoice #INV-5678 and have processed the payment. The funds should be transferred to your account within 2-3 business days.\n\nPlease send a receipt once the payment has been received.\n\nThank you,\nRobert Fox",
+      read: true,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+      attachments: []
+    },
+    {
+      id: "4-2",
+      mailbox_id: "1",
+      conversation_id: "4",
+      from: "Support Team <support@convohub.com>",
+      to: ["robert.fox@example.com"],
+      subject: "Re: Invoice #INV-5678",
+      body: "Hi Robert,\n\nThank you for confirming your payment for invoice #INV-5678. We appreciate your prompt attention to this matter.\n\nI'll send you a receipt as soon as the payment has been processed on our end.\n\nBest regards,\nAccounting Team",
+      read: true,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 71).toISOString(),
+      attachments: []
+    }
+  ],
+  "5": [
+    {
+      id: "5-1",
+      mailbox_id: "1",
+      conversation_id: "5",
+      from: "Cory Smith <cory.smith@example.com>",
+      to: ["support@convohub.com"],
+      subject: "Technical Support Request",
+      body: "Hello Support Team,\n\nI'm having trouble logging into my account. I've tried resetting my password multiple times, but I'm still unable to access my dashboard.\n\nCan you please help me resolve this issue?\n\nThanks,\nCory Smith",
+      read: false,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
+      attachments: []
+    },
+    {
+      id: "5-2",
+      mailbox_id: "1",
+      conversation_id: "5",
+      from: "Support Team <support@convohub.com>",
+      to: ["cory.smith@example.com"],
+      subject: "Re: Technical Support Request",
+      body: "Hi Cory,\n\nI'm sorry to hear you're having trouble accessing your account. Let's get this resolved for you.\n\nI've manually reset your password to a temporary one: TempPass123\n\nPlease log in using this password and then immediately change it to something secure. Let me know if you continue to experience any issues.\n\nBest regards,\nTech Support",
+      read: true,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 95).toISOString(),
+      attachments: []
+    }
+  ],
+  "6": [
+    {
+      id: "6-1",
+      mailbox_id: "1",
+      conversation_id: "6",
+      from: "Abstergo Ltd. <info@abstergo.com>",
+      to: ["support@convohub.com"],
+      subject: "Order Confirmation #1234",
+      body: "Thank you for your order #1234!\n\nWe're processing it now and will ship your items as soon as possible. You will receive a shipping confirmation email with tracking information when your order ships.\n\nHere's a summary of your order:\n- Product A: $299.00 (x1)\n- Product B: $149.50 (x2)\n- Shipping: $15.00\n- Total: $613.00\n\nIf you have any questions about your order, please don't hesitate to contact us.\n\nBest regards,\nAbstergo Customer Service",
+      read: true,
+      starred: false,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(),
+      attachments: []
+    }
   ]
 };
 
@@ -92,7 +178,7 @@ const mockCustomers = {
   },
   "3": {
     id: "cust-3",
-    name: "Globex Corporation",
+    name: "Sidney Huffman",
     email: "contact@globex.com",
     company: "Globex Corporation"
   },
@@ -108,7 +194,7 @@ const mockCustomers = {
   },
   "6": {
     id: "cust-6",
-    name: "Abstergo Ltd.",
+    name: "Customer Service",
     email: "info@abstergo.com",
     company: "Abstergo Ltd."
   }

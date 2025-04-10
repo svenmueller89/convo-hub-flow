@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar } from '@/components/ui/avatar';
@@ -9,7 +9,16 @@ import { Building, Mail, Phone, ExternalLink, Calendar, MessageSquare } from 'lu
 import { useEmails } from '@/hooks/use-emails';
 
 export const CustomerInfo: React.FC = () => {
-  const { conversation, conversationLoading } = useEmails();
+  const { conversation, conversationLoading, selectedEmail } = useEmails();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('CustomerInfo rendering with:', {
+      hasSelectedEmail: !!selectedEmail,
+      hasConversation: !!conversation,
+      conversationLoading
+    });
+  }, [selectedEmail, conversation, conversationLoading]);
 
   // Show placeholder or loading state when no customer info is available
   if (conversationLoading) {
