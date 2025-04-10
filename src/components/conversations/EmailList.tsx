@@ -17,7 +17,7 @@ const statusClasses: Record<string, { color: string; label: string }> = {
 interface EmailItemProps {
   email: EmailSummary;
   selected: boolean;
-  onClick: () => void;
+  onClick: (emailId: string) => void;
 }
 
 const EmailItem: React.FC<EmailItemProps> = ({
@@ -42,7 +42,7 @@ const EmailItem: React.FC<EmailItemProps> = ({
         selected ? "bg-convo-secondary" : "hover:bg-gray-50",
         !email.read ? "bg-blue-50" : ""
       )}
-      onClick={onClick}
+      onClick={() => onClick(email.id)}
     >
       <div className="flex items-start gap-3">
         <Avatar className="h-10 w-10 bg-convo-gray-200">
@@ -116,10 +116,7 @@ export const EmailList: React.FC = () => {
             key={email.id}
             email={email}
             selected={selectedEmail === email.id}
-            onClick={() => {
-              console.log('Email clicked - ID:', email.id);
-              setSelectedEmail(email.id);
-            }}
+            onClick={setSelectedEmail}
           />
         ))}
       </div>
