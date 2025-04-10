@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Clock, ArrowDown, User, MessageCircle, ArrowUp, Send, PaperClip, ChevronRight } from 'lucide-react';
+import { Clock, ArrowDown, User, MessageCircle, ArrowUp, Send, Paperclip, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +39,6 @@ const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustome
 };
 
 export const ConversationDetail: React.FC = () => {
-  // In a real app, this would come from props or context
   const conversation = {
     id: "1",
     customer: "Acme Inc.",
@@ -69,7 +67,6 @@ export const ConversationDetail: React.FC = () => {
   
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">
-      {/* Header */}
       <div className="border-b p-4">
         <div className="flex justify-between items-start">
           <div>
@@ -108,7 +105,6 @@ export const ConversationDetail: React.FC = () => {
         </div>
       </div>
       
-      {/* Message thread */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         <div className="max-w-3xl mx-auto">
           {messages.map((message) => (
@@ -117,7 +113,6 @@ export const ConversationDetail: React.FC = () => {
         </div>
       </div>
       
-      {/* Reply section */}
       <div className="border-t p-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-2">
@@ -132,7 +127,7 @@ export const ConversationDetail: React.FC = () => {
             </div>
             <div>
               <Button variant="ghost" size="sm">
-                <PaperClip className="h-4 w-4" />
+                <Paperclip className="h-4 w-4" />
               </Button>
             </div>
           </div>
