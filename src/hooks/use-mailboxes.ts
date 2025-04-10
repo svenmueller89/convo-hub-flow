@@ -188,6 +188,10 @@ export const useMailboxes = () => {
   const hasPrimaryMailbox = () => {
     return mailboxes?.some(mailbox => mailbox.is_primary) || false;
   };
+  
+  const hasMailboxes = () => {
+    return (mailboxes && mailboxes.length > 0) || false;
+  };
 
   return {
     mailboxes,
@@ -197,6 +201,7 @@ export const useMailboxes = () => {
     updateMailbox,
     deleteMailbox,
     setPrimaryMailbox,
-    hasPrimaryMailbox
+    hasPrimaryMailbox,
+    hasMailboxes
   };
 };
