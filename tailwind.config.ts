@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,26 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// ConvoHub custom colors
+				convo: {
+					primary: '#4F46E5', // indigo
+					secondary: '#E0E7FF', // light indigo
+					success: '#10B981', // green
+					warning: '#F59E0B', // amber
+					danger: '#EF4444', // red
+					gray: {
+						50: '#F9FAFB',
+						100: '#F3F4F6',
+						200: '#E5E7EB',
+						300: '#D1D5DB',
+						400: '#9CA3AF',
+						500: '#6B7280',
+						600: '#4B5563',
+						700: '#374151',
+						800: '#1F2937',
+						900: '#111827',
+					}
 				}
 			},
 			borderRadius: {

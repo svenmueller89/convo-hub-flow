@@ -1,13 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { AppShell } from '@/components/layout/AppShell';
+import { ConversationList } from '@/components/conversations/ConversationList';
+import { ConversationDetail } from '@/components/conversations/ConversationDetail';
+import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <AppShell>
+      <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
+          <ConversationList />
+        </div>
+        <div className="md:col-span-6 h-[calc(100vh-7rem)] overflow-hidden">
+          <ConversationDetail />
+        </div>
+        <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
+          <CustomerInfo />
+        </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 
