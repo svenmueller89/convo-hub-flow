@@ -99,27 +99,15 @@ const handler = async (req: Request) => {
   }
 
   try {
-    // Get JWT token from the request
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header provided' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      );
-    }
-
-    // Create Supabase client with the user's JWT token
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://fmcymhdtudjohlabpvob.supabase.co';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
-    });
-
+    console.log('Fetch conversation function called');
+    
     // Parse request data
     const { conversationId } = await req.json();
 
+    console.log('Requested conversation ID:', conversationId);
+    
     if (!conversationId) {
+      console.error('No conversation ID provided');
       return new Response(
         JSON.stringify({ error: 'Conversation ID is required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -131,6 +119,7 @@ const handler = async (req: Request) => {
     const conversationMessages = mockEmails[conversationId];
     
     if (!conversationMessages || conversationMessages.length === 0) {
+      console.error('Conversation not found for ID:', conversationId);
       return new Response(
         JSON.stringify({ error: 'Conversation not found' }),
         { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -151,6 +140,8 @@ const handler = async (req: Request) => {
       messages: conversationMessages,
       customer
     };
+
+    console.log('Returning conversation data:', JSON.stringify(response).substring(0, 500) + '...');
 
     return new Response(
       JSON.stringify(response),

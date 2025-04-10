@@ -34,6 +34,7 @@ export const useEmails = () => {
       }
       
       try {
+        console.log('Fetching emails for mailbox:', primaryMailbox?.id);
         // Call the edge function to fetch emails
         const { data, error } = await supabase.functions.invoke('fetch-emails', {
           body: {
@@ -43,7 +44,12 @@ export const useEmails = () => {
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error from fetch-emails function:', error);
+          throw error;
+        }
+        
+        console.log('Emails fetched successfully:', data);
         return data;
       } catch (error) {
         console.error('Error fetching emails:', error);
@@ -57,16 +63,24 @@ export const useEmails = () => {
   const {
     data: conversationData,
     isLoading: conversationLoading,
-    error: conversationError
+    error: conversationError,
+    refetch: refetchConversation
   } = useQuery({
     queryKey: ['conversation', selectedEmail],
     queryFn: async () => {
       if (!selectedEmail) return null;
       
       try {
+        console.log('Fetching conversation for email ID:', selectedEmail);
+        
         // Get conversation ID from the selected email
         const email = getEmailById(selectedEmail);
-        if (!email) throw new Error('Email not found');
+        if (!email) {
+          console.error('Email not found with ID:', selectedEmail);
+          throw new Error('Email not found');
+        }
+        
+        console.log('Using conversation ID for fetch:', email.conversation_id);
         
         // Call the edge function to fetch conversation details
         const { data, error } = await supabase.functions.invoke('fetch-conversation', {
@@ -75,7 +89,12 @@ export const useEmails = () => {
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error from fetch-conversation function:', error);
+          throw error;
+        }
+        
+        console.log('Conversation fetched successfully:', data);
         
         // If the email was unread, mark it as read locally
         if (email && !email.read) {
@@ -88,7 +107,7 @@ export const useEmails = () => {
         throw error;
       }
     },
-    enabled: !!selectedEmail,
+    enabled: !!selectedEmail && !!data?.emails?.length,
   });
   
   const emails = data?.emails || [];
@@ -97,7 +116,7 @@ export const useEmails = () => {
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
-    return emails?.find(email => email.id === emailId);
+    return emails.find(email => email.id === emailId);
   };
 
   // Mark email as read
@@ -128,13 +147,27 @@ export const useEmails = () => {
     }
   });
 
+  // Handle email selection - reset conversation if selecting a different email
+  const handleSelectEmail = (emailId: string) => {
+    console.log('Selecting email with ID:', emailId);
+    if (selectedEmail !== emailId) {
+      setSelectedEmail(emailId);
+      // Manually trigger a refetch of the conversation if needed
+      if (selectedEmail) {
+        setTimeout(() => {
+          refetchConversation();
+        }, 0);
+      }
+    }
+  };
+
   return {
     emails,
     isLoading,
     error,
     refetch,
     selectedEmail,
-    setSelectedEmail,
+    setSelectedEmail: handleSelectEmail,
     getEmailById,
     markAsRead,
     unreadCount,

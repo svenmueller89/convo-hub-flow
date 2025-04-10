@@ -64,10 +64,20 @@ const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustome
 
 export const ConversationDetail: React.FC = () => {
   const { 
-    selectedEmail, 
+    selectedEmail,
     conversation,
-    conversationLoading
+    conversationLoading,
+    conversationError
   } = useEmails();
+  
+  React.useEffect(() => {
+    console.log('ConversationDetail received:', {
+      selectedEmail,
+      conversation,
+      conversationLoading,
+      conversationError
+    });
+  }, [selectedEmail, conversation, conversationLoading, conversationError]);
   
   // Show empty state when no conversation is selected
   if (!selectedEmail) {
@@ -96,11 +106,14 @@ export const ConversationDetail: React.FC = () => {
   }
   
   // Show error state if conversation failed to load
-  if (!conversation) {
+  if (conversationError || !conversation) {
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
         <div className="text-center p-8">
           <p className="text-red-500">Failed to load conversation</p>
+          <p className="text-sm text-gray-500 mt-2">
+            {conversationError ? String(conversationError) : 'Could not retrieve conversation data'}
+          </p>
         </div>
       </div>
     );
