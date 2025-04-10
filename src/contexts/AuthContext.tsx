@@ -15,6 +15,7 @@ type AuthContextType = {
   }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  checkAndRedirectToSetup: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +48,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Check if user has any mailboxes, if not redirect to setup
+  const checkAndRedirectToSetup = async () => {
+    if (!user) return false;
+
+    try {
+      const { data: mailboxes, error } = await supabase
+        .from('mailboxes')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (error) throw error;
+
+      const needsSetup = !mailboxes || mailboxes.length === 0;
+      
+      if (needsSetup) {
+        navigate('/setup');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking mailboxes:', error);
+      return false;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -54,7 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
       if (!error) {
-        navigate('/');
+        // After successful sign in, check if setup is needed
+        // Use setTimeout to ensure auth state is updated first
+        setTimeout(async () => {
+          const redirected = await checkAndRedirectToSetup();
+          if (!redirected) {
+            navigate('/');
+          }
+        }, 100);
       }
       return { error };
     } catch (error) {
@@ -74,7 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
       if (!error) {
-        navigate('/');
+        // After successful signup, redirect to setup
+        setTimeout(async () => {
+          navigate('/setup');
+        }, 100);
       }
       return { error };
     } catch (error) {
@@ -94,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     loading,
+    checkAndRedirectToSetup,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

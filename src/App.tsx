@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Customers from "./pages/Customers";
+import Setup from "./pages/Setup";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,11 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/setup" element={
+              <ProtectedRoute>
+                <Setup />
+              </ProtectedRoute>
+            } />
             <Route 
               path="/" 
               element={

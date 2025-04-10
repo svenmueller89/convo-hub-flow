@@ -1,17 +1,27 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, checkAndRedirectToSetup } = useAuth();
   const location = useLocation();
+  const [isCheckingSetup, setIsCheckingSetup] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    if (user && location.pathname !== '/setup') {
+      setIsCheckingSetup(true);
+      checkAndRedirectToSetup().finally(() => {
+        setIsCheckingSetup(false);
+      });
+    }
+  }, [user, location.pathname]);
+
+  if (loading || isCheckingSetup) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900" />
