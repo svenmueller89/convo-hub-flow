@@ -52,3 +52,14 @@ export interface EmailsResponse {
   totalCount: number;
   unreadCount: number;
 }
+
+export interface ConversationDetailResponse {
+  email: Email;
+  messages: Email[];
+  customer?: {
+    id: string;
+    name: string;
+    email: string;
+    company?: string;
+  };
+}

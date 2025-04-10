@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Clock, ArrowDown, User, MessageCircle, ArrowUp, Send, Paperclip, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { useEmails } from '@/hooks/use-emails';
 
 interface MessageProps {
   sender: string;
@@ -12,9 +15,10 @@ interface MessageProps {
   timestamp: string;
   isCustomer: boolean;
   avatar?: string;
+  attachments?: { id: string; filename: string; contentType: string; size: number }[];
 }
 
-const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustomer, avatar }) => {
+const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustomer, avatar, attachments }) => {
   return (
     <div className={cn("flex gap-3 mb-6", isCustomer ? "flex-row" : "flex-row")}>
       <Avatar className={cn(
@@ -33,48 +37,90 @@ const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustome
         <div className="text-sm text-gray-800 whitespace-pre-line">
           {content}
         </div>
+        
+        {attachments && attachments.length > 0 && (
+          <div className="mt-3 space-y-1">
+            <p className="text-xs font-medium text-gray-500">Attachments:</p>
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((attachment) => (
+                <div 
+                  key={attachment.id} 
+                  className="flex items-center gap-1 text-xs bg-gray-100 py-1 px-2 rounded"
+                >
+                  <Paperclip className="h-3 w-3 text-gray-500" />
+                  <span className="text-gray-700">{attachment.filename}</span>
+                  <span className="text-gray-500">
+                    ({Math.round(attachment.size / 1024)}KB)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export const ConversationDetail: React.FC = () => {
-  const conversation = {
-    id: "1",
-    customer: "Acme Inc.",
-    subject: "Website Redesign Quote",
-    assignedTo: "John Smith",
-    status: "new",
-    createdAt: "March 1, 2025",
-  };
+  const { 
+    selectedEmail, 
+    conversation,
+    conversationLoading
+  } = useEmails();
   
-  const messages = [
-    {
-      id: "1",
-      sender: "Acme Inc.",
-      content: "Hi there,\n\nI'm reaching out to discuss the quote for our website redesign project. We're looking to modernize our online presence and improve our customer experience. Can you provide more details about your pricing structure and timeline?\n\nBest regards,\nTom Johnson\nMarketing Director, Acme Inc.",
-      timestamp: "10:30 AM",
-      isCustomer: true,
-    },
-    {
-      id: "2",
-      sender: "John Smith",
-      content: "Hello Tom,\n\nThank you for reaching out about the website redesign project. I'd be happy to discuss our pricing structure and timeline in more detail.\n\nOur basic website redesign package starts at $5,000 and includes:\n- Custom design\n- Responsive layout\n- Basic SEO optimization\n- Content migration\n\nThe timeline is typically 4-6 weeks depending on the complexity of the project.\n\nWould you like to schedule a call to discuss your specific requirements?\n\nBest regards,\nJohn",
-      timestamp: "10:45 AM",
-      isCustomer: false,
-    },
-  ];
+  // Show empty state when no conversation is selected
+  if (!selectedEmail) {
+    return (
+      <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
+        <div className="text-center p-8">
+          <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-gray-700">No conversation selected</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Select an email from the inbox to view the conversation
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while conversation is loading
+  if (conversationLoading) {
+    return (
+      <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
+        <div className="text-center p-8">
+          <p className="text-gray-500">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state if conversation failed to load
+  if (!conversation) {
+    return (
+      <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
+        <div className="text-center p-8">
+          <p className="text-red-500">Failed to load conversation</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Extract data from the conversation
+  const { email, messages, customer } = conversation;
   
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">
       <div className="border-b p-4">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-lg font-semibold">{conversation.subject}</h2>
+            <h2 className="text-lg font-semibold">{email.subject}</h2>
             <div className="flex items-center text-sm text-gray-500 mt-1">
-              <span className="font-medium text-gray-700">{conversation.customer}</span>
+              <span className="font-medium text-gray-700">
+                {customer?.company || customer?.name || email.from.split('<')[0].trim()}
+              </span>
               <ChevronRight className="h-4 w-4 mx-1" />
-              <span>Created {conversation.createdAt}</span>
+              <span>Created {format(new Date(email.date), 'MMM d, yyyy')}</span>
             </div>
           </div>
           
@@ -94,22 +140,36 @@ export const ConversationDetail: React.FC = () => {
           <div className="flex items-center text-sm">
             <User className="h-4 w-4 mr-1 text-gray-500" />
             <span className="font-medium">Assigned to:</span>
-            <span className="ml-1">{conversation.assignedTo}</span>
+            <span className="ml-1">John Smith</span>
           </div>
           
           <div className="flex items-center text-sm">
             <MessageCircle className="h-4 w-4 mr-1 text-gray-500" />
             <span className="font-medium">Status:</span>
-            <span className="ml-1 capitalize">{conversation.status}</span>
+            <span className="ml-1 capitalize">in progress</span>
           </div>
         </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          {messages.map((message) => (
-            <Message key={message.id} {...message} />
-          ))}
+          {messages.map((message) => {
+            // Determine if the message is from a customer or from our team
+            const isCustomer = !message.from.includes('support@convohub.com');
+            const senderName = message.from.split('<')[0].trim();
+            const formattedTime = format(new Date(message.date), 'h:mm a');
+            
+            return (
+              <Message 
+                key={message.id} 
+                sender={senderName}
+                content={message.body}
+                timestamp={formattedTime}
+                isCustomer={isCustomer}
+                attachments={message.attachments}
+              />
+            );
+          })}
         </div>
       </div>
       

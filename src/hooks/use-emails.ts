@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useMailboxes } from '@/hooks/use-mailboxes';
-import { Email, EmailSummary, FetchEmailsParams } from '@/types/email';
+import { Email, EmailSummary, ConversationDetailResponse, FetchEmailsParams } from '@/types/email';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useEmails = () => {
@@ -53,8 +53,47 @@ export const useEmails = () => {
     enabled: !mailboxesLoading && hasPrimaryMailbox(),
   });
   
+  // Fetch conversation details when an email is selected
+  const {
+    data: conversationData,
+    isLoading: conversationLoading,
+    error: conversationError
+  } = useQuery({
+    queryKey: ['conversation', selectedEmail],
+    queryFn: async () => {
+      if (!selectedEmail) return null;
+      
+      try {
+        // Get conversation ID from the selected email
+        const email = getEmailById(selectedEmail);
+        if (!email) throw new Error('Email not found');
+        
+        // Call the edge function to fetch conversation details
+        const { data, error } = await supabase.functions.invoke('fetch-conversation', {
+          body: {
+            conversationId: email.conversation_id
+          }
+        });
+        
+        if (error) throw error;
+        
+        // If the email was unread, mark it as read locally
+        if (email && !email.read) {
+          markAsRead.mutate(selectedEmail);
+        }
+        
+        return data as ConversationDetailResponse;
+      } catch (error) {
+        console.error('Error fetching conversation:', error);
+        throw error;
+      }
+    },
+    enabled: !!selectedEmail,
+  });
+  
   const emails = data?.emails || [];
   const unreadCount = data?.unreadCount || 0;
+  const conversation = conversationData || null;
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
@@ -99,5 +138,8 @@ export const useEmails = () => {
     getEmailById,
     markAsRead,
     unreadCount,
+    conversation,
+    conversationLoading,
+    conversationError
   };
 };
