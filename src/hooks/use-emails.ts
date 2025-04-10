@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useMailboxes } from '@/hooks/use-mailboxes';
@@ -161,10 +161,10 @@ export const useEmails = () => {
   });
 
   // Handle email selection with improved debugging
-  const handleSelectEmail = (emailId: string) => {
+  const handleSelectEmail = useCallback((emailId: string) => {
     console.log('Selecting email with ID:', emailId);
     setSelectedEmail(emailId);
-  };
+  }, []);
 
   const isLoading = mailboxesLoading || emailsLoading;
 

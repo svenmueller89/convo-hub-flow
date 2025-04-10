@@ -104,12 +104,6 @@ export const EmailList: React.FC = () => {
     );
   }
 
-  // This function should directly call setSelectedEmail from the useEmails hook
-  const handleEmailClick = (emailId: string) => {
-    console.log('Email clicked in EmailList component:', emailId);
-    setSelectedEmail(emailId);
-  };
-
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full">
       <div className="flex items-center justify-between border-b p-3">
@@ -122,7 +116,10 @@ export const EmailList: React.FC = () => {
             key={email.id}
             email={email}
             selected={selectedEmail === email.id}
-            onClick={() => handleEmailClick(email.id)}
+            onClick={() => {
+              console.log('Email clicked - ID:', email.id);
+              setSelectedEmail(email.id);
+            }}
           />
         ))}
       </div>

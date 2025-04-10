@@ -15,8 +15,10 @@ export const CustomerInfo: React.FC = () => {
   useEffect(() => {
     console.log('CustomerInfo rendering with:', {
       hasSelectedEmail: !!selectedEmail,
+      selectedEmailId: selectedEmail,
       hasConversation: !!conversation,
-      conversationLoading
+      conversationLoading,
+      customerInfo: conversation?.customer ? JSON.stringify(conversation.customer) : 'No customer data'
     });
   }, [selectedEmail, conversation, conversationLoading]);
 
@@ -44,7 +46,9 @@ export const CustomerInfo: React.FC = () => {
             <CardTitle className="text-lg">Customer Info</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Select a conversation to view customer details</p>
+            <p className="text-sm text-muted-foreground">
+              {selectedEmail ? 'Loading customer details...' : 'Select a conversation to view customer details'}
+            </p>
           </CardContent>
         </Card>
       </div>

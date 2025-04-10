@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useEmails } from '@/hooks/use-emails';
+import { useToast } from '@/hooks/use-toast';
 
 interface MessageProps {
   sender: string;
@@ -63,6 +64,7 @@ const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustome
 };
 
 export const ConversationDetail: React.FC = () => {
+  const { toast } = useToast();
   const { 
     selectedEmail,
     conversation,
@@ -70,12 +72,14 @@ export const ConversationDetail: React.FC = () => {
     conversationError
   } = useEmails();
   
-  React.useEffect(() => {
+  // Enhanced debug logging
+  useEffect(() => {
     console.log('ConversationDetail received:', {
-      selectedEmail,
-      conversation,
+      hasSelectedEmail: !!selectedEmail,
+      selectedEmailId: selectedEmail,
+      hasConversation: !!conversation,
       conversationLoading,
-      conversationError
+      conversationErrorMessage: conversationError ? String(conversationError) : null
     });
   }, [selectedEmail, conversation, conversationLoading, conversationError]);
   
@@ -107,12 +111,29 @@ export const ConversationDetail: React.FC = () => {
   
   // Show error state if conversation failed to load
   if (conversationError || !conversation) {
+    const errorMessage = conversationError 
+      ? typeof conversationError === 'object'
+        ? (conversationError as any)?.message || 'Unknown error'
+        : String(conversationError)
+      : 'Could not retrieve conversation data';
+      
+    // Also show error toast
+    React.useEffect(() => {
+      if (conversationError) {
+        toast({
+          title: "Error loading conversation",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
+    }, [conversationError, toast, errorMessage]);
+    
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
         <div className="text-center p-8">
           <p className="text-red-500">Failed to load conversation</p>
           <p className="text-sm text-gray-500 mt-2">
-            {conversationError ? String(conversationError) : 'Could not retrieve conversation data'}
+            {errorMessage}
           </p>
         </div>
       </div>

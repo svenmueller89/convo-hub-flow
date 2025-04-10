@@ -7,16 +7,17 @@ import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 import { useEmails } from '@/hooks/use-emails';
 
 const Index = () => {
-  const { selectedEmail, conversation, conversationLoading } = useEmails();
+  const { selectedEmail, conversation, conversationLoading, emails } = useEmails();
   
   // Debug logging
   useEffect(() => {
     console.log('Index page rendered with:', { 
       selectedEmail,
+      hasEmails: emails.length > 0,
       hasConversation: !!conversation,
       conversationLoading
     });
-  }, [selectedEmail, conversation, conversationLoading]);
+  }, [selectedEmail, emails, conversation, conversationLoading]);
   
   return (
     <AppShell>
