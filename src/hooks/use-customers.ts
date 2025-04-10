@@ -4,15 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Customer, CustomerFormData } from '@/types/customer';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useCustomers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const { data: customers, isLoading, error } = useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('customers')
         .select('*')
@@ -22,14 +26,22 @@ export const useCustomers = () => {
         throw new Error(error.message);
       }
       return data as Customer[];
-    }
+    },
+    enabled: !!user,
   });
 
   const createCustomer = useMutation({
     mutationFn: async (formData: CustomerFormData) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const customerData = {
+        ...formData,
+        user_id: user.id
+      };
+      
       const { data, error } = await supabase
         .from('customers')
-        .insert([formData])
+        .insert([customerData])
         .select()
         .single();
         
@@ -56,6 +68,8 @@ export const useCustomers = () => {
 
   const updateCustomer = useMutation({
     mutationFn: async ({ id, ...formData }: Customer) => {
+      if (!user) throw new Error('User not authenticated');
+      
       const { data, error } = await supabase
         .from('customers')
         .update(formData)
@@ -86,6 +100,8 @@ export const useCustomers = () => {
 
   const deleteCustomer = useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+      
       const { error } = await supabase
         .from('customers')
         .delete()

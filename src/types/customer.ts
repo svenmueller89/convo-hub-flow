@@ -9,6 +9,7 @@ export type Customer = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
 };
 
-export type CustomerFormData = Omit<Customer, 'id' | 'created_at' | 'updated_at'>;
+export type CustomerFormData = Omit<Customer, 'id' | 'created_at' | 'updated_at' | 'user_id'>;
