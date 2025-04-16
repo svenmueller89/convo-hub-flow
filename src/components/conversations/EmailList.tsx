@@ -35,6 +35,13 @@ const EmailItem: React.FC<EmailItemProps> = ({
   
   const formattedDate = formatDistanceToNow(new Date(email.date), { addSuffix: true });
   
+  // Enhanced click handler with debugging
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    console.log(`Email clicked: ${email.id} - ${email.subject}`);
+    onClick(email.id);
+  };
+  
   return (
     <div 
       className={cn(
@@ -42,7 +49,8 @@ const EmailItem: React.FC<EmailItemProps> = ({
         selected ? "bg-convo-secondary" : "hover:bg-gray-50",
         !email.read ? "bg-blue-50" : ""
       )}
-      onClick={() => onClick(email.id)}
+      onClick={handleClick}
+      data-email-id={email.id}
     >
       <div className="flex items-start gap-3">
         <Avatar className="h-10 w-10 bg-convo-gray-200">

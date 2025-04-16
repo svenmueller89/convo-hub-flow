@@ -135,6 +135,16 @@ export const ConversationDetail: React.FC = () => {
           <p className="text-sm text-gray-500 mt-2">
             {errorMessage}
           </p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => {
+              // Try refetching
+              window.location.reload();
+            }}
+          >
+            Try again
+          </Button>
         </div>
       </div>
     );

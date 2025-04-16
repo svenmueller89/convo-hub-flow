@@ -99,7 +99,7 @@ export const useEmails = () => {
         
         console.log('Conversation fetched successfully:', data);
         
-        // If the email was unread, mark it as read locally
+        // If the email was unread, mark it as read
         if (email && !email.read) {
           markAsRead.mutate(selectedEmail);
         }
@@ -111,6 +111,7 @@ export const useEmails = () => {
       }
     },
     enabled: !!selectedEmail && !!data?.emails?.length,
+    retry: 1, // Limit retries to avoid infinite loops
   });
   
   const emails = data?.emails || [];
@@ -163,8 +164,19 @@ export const useEmails = () => {
   // Handle email selection with improved debugging
   const handleSelectEmail = useCallback((emailId: string) => {
     console.log('Selecting email with ID:', emailId);
+    
+    // First, set the selected email ID
     setSelectedEmail(emailId);
-  }, []);
+    
+    // Force refetch conversation if needed
+    if (emailId) {
+      // Wait for next tick to ensure selectedEmail is updated
+      setTimeout(() => {
+        console.log('Triggering conversation refetch for email:', emailId);
+        queryClient.invalidateQueries({ queryKey: ['conversation', emailId] });
+      }, 0);
+    }
+  }, [queryClient]);
 
   const isLoading = mailboxesLoading || emailsLoading;
 

@@ -5,9 +5,11 @@ import { EmailList } from '@/components/conversations/EmailList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 import { useEmails } from '@/hooks/use-emails';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { selectedEmail, conversation, conversationLoading, emails } = useEmails();
+  const { toast } = useToast();
+  const { selectedEmail, conversation, conversationLoading, emails, conversationError } = useEmails();
   
   // Debug logging
   useEffect(() => {
@@ -15,9 +17,19 @@ const Index = () => {
       selectedEmail,
       hasEmails: emails.length > 0,
       hasConversation: !!conversation,
-      conversationLoading
+      conversationLoading,
+      conversationError: conversationError ? 'Error: ' + String(conversationError) : 'No error'
     });
-  }, [selectedEmail, emails, conversation, conversationLoading]);
+    
+    // Show error toast if there's an issue with conversation loading
+    if (conversationError && selectedEmail) {
+      toast({
+        title: "Error loading conversation",
+        description: "There was a problem loading the conversation details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [selectedEmail, emails, conversation, conversationLoading, conversationError, toast]);
   
   return (
     <AppShell>

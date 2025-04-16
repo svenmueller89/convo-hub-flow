@@ -9,7 +9,7 @@ import { Building, Mail, Phone, ExternalLink, Calendar, MessageSquare } from 'lu
 import { useEmails } from '@/hooks/use-emails';
 
 export const CustomerInfo: React.FC = () => {
-  const { conversation, conversationLoading, selectedEmail } = useEmails();
+  const { conversation, conversationLoading, selectedEmail, conversationError } = useEmails();
   
   // Debug logging
   useEffect(() => {
@@ -18,11 +18,30 @@ export const CustomerInfo: React.FC = () => {
       selectedEmailId: selectedEmail,
       hasConversation: !!conversation,
       conversationLoading,
+      conversationError: conversationError ? String(conversationError) : 'No error',
       customerInfo: conversation?.customer ? JSON.stringify(conversation.customer) : 'No customer data'
     });
-  }, [selectedEmail, conversation, conversationLoading]);
+  }, [selectedEmail, conversation, conversationLoading, conversationError]);
 
-  // Show placeholder or loading state when no customer info is available
+  // Show placeholder when no email is selected
+  if (!selectedEmail) {
+    return (
+      <div className="h-full">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="text-lg">Customer Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Select a conversation to view customer details
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Show loading state when conversation is loading
   if (conversationLoading) {
     return (
       <div className="h-full">
@@ -37,8 +56,27 @@ export const CustomerInfo: React.FC = () => {
       </div>
     );
   }
+  
+  // Show error state if conversation failed to load
+  if (conversationError || !conversation) {
+    return (
+      <div className="h-full">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="text-lg">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              There was an error loading the customer information.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  if (!conversation || !conversation.customer) {
+  // If we have no customer data in conversation
+  if (!conversation.customer) {
     return (
       <div className="h-full">
         <Card className="h-full">
@@ -47,7 +85,7 @@ export const CustomerInfo: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {selectedEmail ? 'Loading customer details...' : 'Select a conversation to view customer details'}
+              No customer information available
             </p>
           </CardContent>
         </Card>
