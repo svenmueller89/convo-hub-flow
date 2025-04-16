@@ -8,7 +8,7 @@ import { useEmails } from '@/hooks/use-emails';
 
 const ConversationsPage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const { allEmails, conversation, conversationLoading, conversationError } = useEmails();
+  const { allEmails, conversation, conversationLoading, conversationError, setSelectedEmail } = useEmails();
 
   // Find the email corresponding to the selected conversation
   const selectedEmail = selectedConversationId 
@@ -16,7 +16,17 @@ const ConversationsPage = () => {
     : null;
 
   const handleSelectConversation = (conversationId: string) => {
+    console.log('ConversationsPage: Selected conversation ID:', conversationId);
     setSelectedConversationId(conversationId);
+    
+    // Find the corresponding email ID and set it as the selected email
+    const emailId = allEmails.find(email => email.conversation_id === conversationId)?.id;
+    if (emailId) {
+      console.log('ConversationsPage: Setting selected email ID:', emailId);
+      setSelectedEmail(emailId);
+    } else {
+      console.log('ConversationsPage: No matching email found for conversation:', conversationId);
+    }
   };
 
   return (
