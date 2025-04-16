@@ -84,8 +84,13 @@ const EmailItem: React.FC<EmailItemProps> = ({
   );
 };
 
-export const EmailList: React.FC = () => {
-  const { emails, isLoading, selectedEmail, setSelectedEmail, unreadCount } = useEmails();
+interface EmailListProps {
+  selectedEmail: string | null;
+  onSelectEmail: (emailId: string) => void;
+}
+
+export const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEmail }) => {
+  const { emails, isLoading, unreadCount } = useEmails();
   
   // Debug logging to see what's happening
   React.useEffect(() => {
@@ -95,6 +100,11 @@ export const EmailList: React.FC = () => {
       isLoading
     });
   }, [emails, selectedEmail, isLoading]);
+  
+  const handleSelectEmail = (emailId: string) => {
+    console.log(`EmailList: selecting email ${emailId}`);
+    onSelectEmail(emailId);
+  };
   
   if (isLoading) {
     return (
@@ -124,7 +134,7 @@ export const EmailList: React.FC = () => {
             key={email.id}
             email={email}
             selected={selectedEmail === email.id}
-            onClick={setSelectedEmail}
+            onClick={handleSelectEmail}
           />
         ))}
       </div>

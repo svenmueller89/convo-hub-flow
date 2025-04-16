@@ -7,8 +7,7 @@ import { Clock, ArrowDown, User, MessageCircle, ArrowUp, Send, Paperclip, Chevro
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { useEmails } from '@/hooks/use-emails';
-import { useToast } from '@/hooks/use-toast';
+import { ConversationDetailResponse } from '@/types/email';
 
 interface MessageProps {
   sender: string;
@@ -63,25 +62,29 @@ const Message: React.FC<MessageProps> = ({ sender, content, timestamp, isCustome
   );
 };
 
-export const ConversationDetail: React.FC = () => {
-  const { toast } = useToast();
-  const { 
-    selectedEmail,
-    conversation,
-    conversationLoading,
-    conversationError
-  } = useEmails();
-  
+interface ConversationDetailProps {
+  selectedEmail: string | null;
+  conversation: ConversationDetailResponse | null;
+  isLoading: boolean;
+  error: unknown;
+}
+
+export const ConversationDetail: React.FC<ConversationDetailProps> = ({ 
+  selectedEmail, 
+  conversation, 
+  isLoading, 
+  error 
+}) => {
   // Enhanced debug logging
   useEffect(() => {
-    console.log('ConversationDetail received:', {
+    console.log('ConversationDetail received props:', {
       hasSelectedEmail: !!selectedEmail,
       selectedEmailId: selectedEmail,
       hasConversation: !!conversation,
-      conversationLoading,
-      conversationErrorMessage: conversationError ? String(conversationError) : null
+      isLoading,
+      error: error ? String(error) : null
     });
-  }, [selectedEmail, conversation, conversationLoading, conversationError]);
+  }, [selectedEmail, conversation, isLoading, error]);
   
   // Show empty state when no conversation is selected
   if (!selectedEmail) {
@@ -99,7 +102,7 @@ export const ConversationDetail: React.FC = () => {
   }
 
   // Show loading state while conversation is loading
-  if (conversationLoading) {
+  if (isLoading) {
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
         <div className="text-center p-8">
@@ -110,24 +113,13 @@ export const ConversationDetail: React.FC = () => {
   }
   
   // Show error state if conversation failed to load
-  if (conversationError || !conversation) {
-    const errorMessage = conversationError 
-      ? typeof conversationError === 'object'
-        ? (conversationError as any)?.message || 'Unknown error'
-        : String(conversationError)
+  if (error || !conversation) {
+    const errorMessage = error 
+      ? typeof error === 'object'
+        ? (error as any)?.message || 'Unknown error'
+        : String(error)
       : 'Could not retrieve conversation data';
       
-    // Also show error toast
-    React.useEffect(() => {
-      if (conversationError) {
-        toast({
-          title: "Error loading conversation",
-          description: errorMessage,
-          variant: "destructive"
-        });
-      }
-    }, [conversationError, toast, errorMessage]);
-    
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
         <div className="text-center p-8">

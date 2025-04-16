@@ -26,6 +26,7 @@ export const useEmails = () => {
     queryFn: async () => {
       // Check if we have a primary mailbox
       if (!hasPrimaryMailbox()) {
+        console.log('No primary mailbox found, returning empty emails array');
         return {
           emails: [],
           totalCount: 0,
@@ -57,6 +58,7 @@ export const useEmails = () => {
       }
     },
     enabled: !mailboxesLoading && hasPrimaryMailbox(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   // Fetch conversation details when an email is selected
@@ -112,6 +114,7 @@ export const useEmails = () => {
     },
     enabled: !!selectedEmail && !!data?.emails?.length,
     retry: 1, // Limit retries to avoid infinite loops
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   const emails = data?.emails || [];

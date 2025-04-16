@@ -6,22 +6,32 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Building, Mail, Phone, ExternalLink, Calendar, MessageSquare } from 'lucide-react';
-import { useEmails } from '@/hooks/use-emails';
+import { ConversationDetailResponse } from '@/types/email';
 
-export const CustomerInfo: React.FC = () => {
-  const { conversation, conversationLoading, selectedEmail, conversationError } = useEmails();
-  
+interface CustomerInfoProps {
+  selectedEmail: string | null;
+  conversation: ConversationDetailResponse | null;
+  isLoading: boolean;
+  error: unknown;
+}
+
+export const CustomerInfo: React.FC<CustomerInfoProps> = ({ 
+  selectedEmail, 
+  conversation, 
+  isLoading, 
+  error 
+}) => {
   // Debug logging
   useEffect(() => {
-    console.log('CustomerInfo rendering with:', {
+    console.log('CustomerInfo rendering with props:', {
       hasSelectedEmail: !!selectedEmail,
       selectedEmailId: selectedEmail,
       hasConversation: !!conversation,
-      conversationLoading,
-      conversationError: conversationError ? String(conversationError) : 'No error',
+      isLoading,
+      error: error ? String(error) : 'No error',
       customerInfo: conversation?.customer ? JSON.stringify(conversation.customer) : 'No customer data'
     });
-  }, [selectedEmail, conversation, conversationLoading, conversationError]);
+  }, [selectedEmail, conversation, isLoading, error]);
 
   // Show placeholder when no email is selected
   if (!selectedEmail) {
@@ -42,7 +52,7 @@ export const CustomerInfo: React.FC = () => {
   }
   
   // Show loading state when conversation is loading
-  if (conversationLoading) {
+  if (isLoading) {
     return (
       <div className="h-full">
         <Card className="h-full">
@@ -58,7 +68,7 @@ export const CustomerInfo: React.FC = () => {
   }
   
   // Show error state if conversation failed to load
-  if (conversationError || !conversation) {
+  if (error || !conversation) {
     return (
       <div className="h-full">
         <Card className="h-full">

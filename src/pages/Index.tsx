@@ -9,7 +9,14 @@ import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const { selectedEmail, conversation, conversationLoading, emails, conversationError } = useEmails();
+  const { 
+    selectedEmail, 
+    conversation, 
+    conversationLoading, 
+    emails, 
+    conversationError,
+    setSelectedEmail 
+  } = useEmails();
   
   // Debug logging
   useEffect(() => {
@@ -35,13 +42,23 @@ const Index = () => {
     <AppShell>
       <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
-          <EmailList />
+          <EmailList selectedEmail={selectedEmail} onSelectEmail={setSelectedEmail} />
         </div>
         <div className="md:col-span-6 h-[calc(100vh-7rem)] overflow-hidden">
-          <ConversationDetail />
+          <ConversationDetail 
+            selectedEmail={selectedEmail} 
+            conversation={conversation} 
+            isLoading={conversationLoading}
+            error={conversationError}
+          />
         </div>
         <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
-          <CustomerInfo />
+          <CustomerInfo 
+            selectedEmail={selectedEmail} 
+            conversation={conversation}
+            isLoading={conversationLoading} 
+            error={conversationError} 
+          />
         </div>
       </div>
     </AppShell>
