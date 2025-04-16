@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Inbox, 
   Users, 
@@ -13,15 +13,25 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useEmails } from '@/hooks/use-emails';
 
 export const SideNav: React.FC = () => {
+  const location = useLocation();
+  const { unreadCount } = useEmails();
+  
   const navigation = [
-    { name: 'Inbox', href: '/', icon: Inbox, count: 12, active: true },
-    { name: 'Customers', href: '/customers', icon: Users },
-    { name: 'Conversations', href: '/conversations', icon: MessageSquare, count: 20 },
-    { name: 'Completed', href: '/completed', icon: CheckCircle },
-    { name: 'Snoozed', href: '/snoozed', icon: Clock },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Inbox', href: '/', icon: Inbox, count: unreadCount, active: location.pathname === '/' },
+    { name: 'Customers', href: '/customers', icon: Users, active: location.pathname === '/customers' },
+    { 
+      name: 'Conversations', 
+      href: '/conversations', 
+      icon: MessageSquare, 
+      count: unreadCount, 
+      active: location.pathname === '/conversations' 
+    },
+    { name: 'Completed', href: '/completed', icon: CheckCircle, active: location.pathname === '/completed' },
+    { name: 'Snoozed', href: '/snoozed', icon: Clock, active: location.pathname === '/snoozed' },
+    { name: 'Settings', href: '/settings', icon: Settings, active: location.pathname === '/settings' },
   ];
 
   return (

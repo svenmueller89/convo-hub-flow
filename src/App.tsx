@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Customers from "./pages/Customers";
+import ConversationsPage from "./pages/ConversationsPage";
 import Setup from "./pages/Setup";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Index />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/conversations" 
+              element={
+                <ProtectedRoute>
+                  <ConversationsPage />
                 </ProtectedRoute>
               } 
             />
