@@ -136,20 +136,15 @@ export const useEmails = () => {
     return emails.find(email => email.id === emailId);
   };
 
-  // Mark email as read - updated implementation
+  // Mark email as read - fixed implementation
   const markAsRead = useMutation({
     mutationFn: async (emailId: string) => {
       console.log('Marking email as read:', emailId);
       
       try {
-        // Call the updated fetch-emails function with markAsReadId
-        const { data, error } = await supabase.functions.invoke('fetch-emails', {
-          body: {
-            mailboxId: primaryMailbox?.id,
-            markAsReadId: emailId,
-            page: 1,
-            limit: 20
-          }
+        // Call the dedicated mark-as-read edge function
+        const { data, error } = await supabase.functions.invoke('mark-as-read', {
+          body: { emailId }
         });
         
         if (error) {
@@ -157,14 +152,32 @@ export const useEmails = () => {
           throw error;
         }
         
-        return { success: true };
+        return { success: true, emailId };
       } catch (error) {
         console.error('Error marking email as read:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      // Invalidate the emails query to trigger a refetch
+    onSuccess: (result) => {
+      // Update the local emails data to reflect the read status
+      if (data && data.emails) {
+        // Find the email in the current data and update its read status
+        const updatedEmails = data.emails.map(email => {
+          if (email.id === result.emailId) {
+            return { ...email, read: true };
+          }
+          return email;
+        });
+        
+        // Update the query data directly
+        queryClient.setQueryData(['emails', primaryMailbox?.id], {
+          ...data,
+          emails: updatedEmails,
+          unreadCount: Math.max(0, (data.unreadCount || 0) - 1)
+        });
+      }
+      
+      // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       
       toast({

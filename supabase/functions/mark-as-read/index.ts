@@ -37,9 +37,21 @@ const handler = async (req: Request) => {
 
     console.log(`Marking email ${emailId} as read`);
     
-    // In a real implementation, we would update the email in the database
-    // For our mock data implementation, we'll just return success
-    // This would be replaced with actual database operations in a production app
+    // Call the fetch-emails function with markAsReadId parameter 
+    // This will update the email status in our mock data
+    const invokeResponse = await supabase.functions.invoke('fetch-emails', {
+      body: {
+        markAsReadId: emailId
+      }
+    });
+    
+    if (invokeResponse.error) {
+      console.error('Error calling fetch-emails:', invokeResponse.error);
+      return new Response(
+        JSON.stringify({ error: invokeResponse.error }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
     
     return new Response(
       JSON.stringify({ success: true }),
