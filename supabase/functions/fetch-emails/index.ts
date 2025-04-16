@@ -1,10 +1,9 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { EmailSummary, EmailsResponse } from '../_shared/types.ts';
 
-// Mock data for demonstration purposes - in a real app, this would connect to email APIs
-const mockEmails: EmailSummary[] = [
+// Store the mock emails in memory so we can update them
+let mockEmails: EmailSummary[] = [
   {
     id: "1",
     conversation_id: "1",
@@ -128,7 +127,16 @@ const handler = async (req: Request) => {
     });
 
     // Parse request data
-    const { mailboxId, page = 1, limit = 10, status, label, search } = await req.json();
+    const { mailboxId, page = 1, limit = 10, status, label, search, markAsReadId } = await req.json();
+    
+    // Handle marking email as read if markAsReadId is provided
+    if (markAsReadId) {
+      const emailIndex = mockEmails.findIndex(email => email.id === markAsReadId);
+      if (emailIndex !== -1) {
+        console.log(`Marking email ${markAsReadId} as read`);
+        mockEmails[emailIndex].read = true;
+      }
+    }
 
     // Fetch primary mailbox if no mailboxId is provided
     let userMailboxId = mailboxId;

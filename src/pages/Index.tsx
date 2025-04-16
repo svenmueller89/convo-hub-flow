@@ -15,7 +15,8 @@ const Index = () => {
     conversationLoading, 
     emails, 
     conversationError,
-    setSelectedEmail 
+    setSelectedEmail,
+    unreadCount 
   } = useEmails();
   
   // Debug logging
@@ -25,6 +26,7 @@ const Index = () => {
       hasEmails: emails.length > 0,
       hasConversation: !!conversation,
       conversationLoading,
+      unreadCount,
       conversationError: conversationError ? 'Error: ' + String(conversationError) : 'No error'
     });
     
@@ -36,7 +38,7 @@ const Index = () => {
         variant: "destructive",
       });
     }
-  }, [selectedEmail, emails, conversation, conversationLoading, conversationError, toast]);
+  }, [selectedEmail, emails, conversation, conversationLoading, conversationError, toast, unreadCount]);
   
   return (
     <AppShell>

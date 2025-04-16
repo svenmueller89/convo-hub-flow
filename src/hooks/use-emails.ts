@@ -136,14 +136,32 @@ export const useEmails = () => {
     return emails.find(email => email.id === emailId);
   };
 
-  // Mark email as read
+  // Mark email as read - updated implementation
   const markAsRead = useMutation({
     mutationFn: async (emailId: string) => {
-      // In a real implementation, we would call an API to mark the email as read
       console.log('Marking email as read:', emailId);
       
-      // For now, just return success
-      return { success: true };
+      try {
+        // Call the updated fetch-emails function with markAsReadId
+        const { data, error } = await supabase.functions.invoke('fetch-emails', {
+          body: {
+            mailboxId: primaryMailbox?.id,
+            markAsReadId: emailId,
+            page: 1,
+            limit: 20
+          }
+        });
+        
+        if (error) {
+          console.error('Error marking email as read:', error);
+          throw error;
+        }
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error marking email as read:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate the emails query to trigger a refetch
@@ -211,6 +229,15 @@ export const useEmails = () => {
     // First, set the selected email ID
     setSelectedEmail(emailId);
     
+    // Get the email from the current list
+    const email = emails.find(e => e.id === emailId);
+    
+    // If the email is unread, mark it as read
+    if (email && !email.read) {
+      console.log('Email is unread, marking as read');
+      markAsRead.mutate(emailId);
+    }
+    
     // Force refetch conversation if needed
     if (emailId) {
       // Wait for next tick to ensure selectedEmail is updated
@@ -219,7 +246,7 @@ export const useEmails = () => {
         queryClient.invalidateQueries({ queryKey: ['conversation', emailId] });
       }, 0);
     }
-  }, [queryClient]);
+  }, [queryClient, emails, markAsRead]);
 
   const isLoading = mailboxesLoading || emailsLoading;
 
