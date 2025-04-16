@@ -20,7 +20,7 @@ const customerSchema = z.object({
 });
 
 interface CustomerFormProps {
-  initialData?: Customer;
+  initialData?: CustomerFormData; // Changed from Customer to CustomerFormData type
   onSubmit: (data: CustomerFormData) => void;
   onCancel: () => void;
   isSubmitting: boolean;

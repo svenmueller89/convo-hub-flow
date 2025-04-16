@@ -11,7 +11,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CustomerForm } from '@/components/customers/CustomerForm';
-import { CustomerFormData } from '@/types/customer';
+import { Customer, CustomerFormData } from '@/types/customer';
 
 interface CustomerInfoProps {
   selectedEmail: string | null;
