@@ -3,9 +3,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const handler = async (req: Request) => {
+  console.log("[mark-as-read] Handler function started");
+  
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    console.log("Handling OPTIONS request with CORS headers");
+    console.log("[mark-as-read] Handling OPTIONS request with CORS headers");
     return new Response('ok', { headers: corsHeaders });
   }
 
@@ -13,7 +15,7 @@ const handler = async (req: Request) => {
     // Get JWT token from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error("No authorization header provided");
+      console.error("[mark-as-read] No authorization header provided");
       return new Response(
         JSON.stringify({ error: 'No authorization header provided' }),
         { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -44,8 +46,20 @@ const handler = async (req: Request) => {
 
     console.log(`[mark-as-read] Marking email ${emailId} as read`);
     
-    // Call the fetch-emails function with markAsReadId parameter 
-    // This will update the email status in our mock data
+    // First get the current state of the emails to ensure we have the most up-to-date data
+    const { data: currentData, error: fetchError } = await supabase.functions.invoke('fetch-emails', {
+      body: {}
+    });
+    
+    if (fetchError) {
+      console.error('[mark-as-read] Error getting current emails state:', fetchError);
+      return new Response(
+        JSON.stringify({ error: fetchError }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+    
+    // Now call the fetch-emails function with markAsReadId parameter to update the email status
     const invokeResponse = await supabase.functions.invoke('fetch-emails', {
       body: {
         markAsReadId: emailId
@@ -60,7 +74,18 @@ const handler = async (req: Request) => {
       );
     }
     
+    // Verify the email was actually marked as read
+    const markedEmail = invokeResponse.data.emails.find((email: any) => email.id === emailId);
+    if (!markedEmail || !markedEmail.read) {
+      console.error(`[mark-as-read] Failed to update read status for email ${emailId}`);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update read status' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+    
     console.log(`[mark-as-read] Response from fetch-emails:`, JSON.stringify(invokeResponse.data, null, 2));
+    console.log(`[mark-as-read] Email ${emailId} marked as read successfully`);
     
     return new Response(
       JSON.stringify({ 

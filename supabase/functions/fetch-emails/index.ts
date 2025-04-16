@@ -1,9 +1,16 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { EmailSummary, EmailsResponse } from '../_shared/types.ts';
 
-// Store the mock emails in memory so we can update them
-let mockEmails: EmailSummary[] = [
+// Store the mock emails in memory with a global variable or using a key-value DB
+// This is a more persistent solution than relying on function-scoped variables
+// In a real application, this would be stored in a database
+// Use AsyncLocalStorage or Deno.env's custom storage to persist across invocations
+const EMAILS_KEY = "mock_emails_storage";
+
+// Initial emails data - only used if nothing exists in storage yet
+const initialMockEmails: EmailSummary[] = [
   {
     id: "1",
     conversation_id: "1",
@@ -102,7 +109,48 @@ let mockEmails: EmailSummary[] = [
   }
 ];
 
+// Helper function to get emails from storage
+async function getStoredEmails(): Promise<EmailSummary[]> {
+  try {
+    // In a real application, this would fetch from a database
+    // For now, we'll use a server-side variable that persists across requests
+    
+    // Since Deno Deploy functions are stateless, we would need a storage solution
+    // This is a simplified mock using global state (for demo purposes only)
+    const kv = await Deno.openKv();
+    const storedData = await kv.get([EMAILS_KEY]);
+    
+    if (storedData.value) {
+      console.log("Using stored emails from KV store");
+      return storedData.value as EmailSummary[];
+    } else {
+      console.log("No stored emails found in KV store, using initial data");
+      // Initial setup - store the default emails
+      await kv.set([EMAILS_KEY], initialMockEmails);
+      return initialMockEmails;
+    }
+  } catch (error) {
+    console.error("Error accessing email storage:", error);
+    // Fallback to initial data if storage fails
+    return [...initialMockEmails]; 
+  }
+}
+
+// Helper function to save emails to storage
+async function saveEmails(emails: EmailSummary[]): Promise<void> {
+  try {
+    // In a real application, this would update a database
+    const kv = await Deno.openKv();
+    await kv.set([EMAILS_KEY], emails);
+    console.log("Saved updated emails to KV store");
+  } catch (error) {
+    console.error("Error saving emails to storage:", error);
+  }
+}
+
 const handler = async (req: Request) => {
+  console.log("[fetch-emails] Function called");
+  
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -129,12 +177,21 @@ const handler = async (req: Request) => {
     // Parse request data
     const { mailboxId, page = 1, limit = 10, status, label, search, markAsReadId } = await req.json();
     
+    // Get emails from storage
+    let mockEmails = await getStoredEmails();
+    
     // Handle marking email as read if markAsReadId is provided
     if (markAsReadId) {
       const emailIndex = mockEmails.findIndex(email => email.id === markAsReadId);
       if (emailIndex !== -1) {
         console.log(`Marking email ${markAsReadId} as read`);
         mockEmails[emailIndex].read = true;
+        
+        // Save the updated emails back to storage
+        await saveEmails(mockEmails);
+        console.log("Saved updated read status to storage");
+      } else {
+        console.log(`Email with ID ${markAsReadId} not found`);
       }
     }
 
@@ -157,8 +214,7 @@ const handler = async (req: Request) => {
       userMailboxId = mailboxes.id;
     }
 
-    // In a real implementation, we would fetch emails from an email service
-    // For now, we'll use mock data and filter based on request parameters
+    // Filter emails based on request parameters
     let filteredEmails = [...mockEmails];
     
     if (status) {

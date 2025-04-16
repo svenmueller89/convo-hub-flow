@@ -51,20 +51,19 @@ const Index = () => {
     // If the email exists and is unread, mark it as read
     if (email && !email.read) {
       console.log(`Email ${emailId} is unread, marking as read`);
-      markAsRead.mutate(emailId, {
-        onSuccess: (data) => {
-          console.log('Mark as read success response:', data);
-        },
-        onError: (error) => {
-          console.error('Mark as read error:', error);
-        }
-      });
+      
+      // Set the selected email first to avoid UI flashing
+      setSelectedEmail(emailId);
+      
+      // Then mark as read (slightly delayed to ensure UI updates properly)
+      setTimeout(() => {
+        markAsRead.mutate(emailId);
+      }, 10);
     } else {
       console.log(`Email ${emailId} is already read or not found in emails list`);
+      // Just set the selected email
+      setSelectedEmail(emailId);
     }
-    
-    // Set the selected email
-    setSelectedEmail(emailId);
   };
   
   return (

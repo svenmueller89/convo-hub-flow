@@ -58,7 +58,7 @@ export const useEmails = () => {
       }
     },
     enabled: !mailboxesLoading && hasPrimaryMailbox(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Disable staleTime to ensure we always get fresh data
   });
   
   // Fetch conversation details when an email is selected
@@ -109,7 +109,6 @@ export const useEmails = () => {
     },
     enabled: !!selectedEmail && !!data?.emails?.length,
     retry: 1, // Limit retries to avoid infinite loops
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   const emails = data?.emails || [];
@@ -132,7 +131,7 @@ export const useEmails = () => {
     return emails.find(email => email.id === emailId);
   };
 
-  // Mark email as read - fixed implementation with detailed logging
+  // Mark email as read - improved implementation with proper cache updates
   const markAsRead = useMutation({
     mutationFn: async (emailId: string) => {
       console.log('Marking email as read:', emailId);
@@ -155,53 +154,66 @@ export const useEmails = () => {
         throw error;
       }
     },
-    onSuccess: (result) => {
-      console.log('Mark as read mutation successful:', result);
+    onMutate: async (emailId) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['emails', primaryMailbox?.id] });
       
-      // Update the local emails data to reflect the read status
+      // Get the current emails data
+      const previousData = queryClient.getQueryData(['emails', primaryMailbox?.id]);
+      
+      // Optimistically update the cache
       if (data && data.emails) {
-        // Find the email in the current data and update its read status
-        const updatedEmails = data.emails.map(email => {
-          if (email.id === result.emailId) {
-            console.log(`Updating email ${email.id} read status to true`);
-            return { ...email, read: true };
-          }
-          return email;
-        });
-        
-        // Calculate new unread count
-        const newUnreadCount = Math.max(0, (data.unreadCount || 0) - 1);
-        console.log(`Updating unread count from ${data.unreadCount} to ${newUnreadCount}`);
-        
-        // Update the query data directly
-        queryClient.setQueryData(['emails', primaryMailbox?.id], {
+        const optimisticData = {
           ...data,
-          emails: updatedEmails,
-          unreadCount: newUnreadCount
-        });
+          emails: data.emails.map(email => {
+            if (email.id === emailId) {
+              return { ...email, read: true };
+            }
+            return email;
+          }),
+          unreadCount: Math.max(0, (data.unreadCount || 0) - 1)
+        };
         
-        console.log('Updated query cache data after marking as read');
-      } else {
-        console.warn('Cannot update local cache: data or data.emails is undefined');
+        // Update the cache with our optimistic data
+        queryClient.setQueryData(['emails', primaryMailbox?.id], optimisticData);
       }
       
-      // Force a refetch to ensure we have the latest data
-      refetchEmails().then(() => {
-        console.log('Email data refetched after marking as read');
-      });
+      // Return the previous data for rollback in case of error
+      return { previousData };
+    },
+    onSuccess: async (result) => {
+      console.log('Mark as read mutation successful:', result);
+      
+      // Update the query data with the new emails from the result
+      if (result && result.data) {
+        queryClient.setQueryData(['emails', primaryMailbox?.id], result.data);
+      }
+      
+      // Force a refetch to ensure everything is in sync
+      await refetchEmails();
       
       toast({
         title: "Email marked as read",
         description: "The email has been marked as read.",
       });
     },
-    onError: (error) => {
+    onError: (error, emailId, context) => {
       console.error('Error in mark as read mutation:', error);
+      
+      // Roll back to the previous data if available
+      if (context?.previousData) {
+        queryClient.setQueryData(['emails', primaryMailbox?.id], context.previousData);
+      }
+      
       toast({
         title: "Failed to mark email as read",
         description: "There was an error marking the email as read.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Invalidate the emails query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['emails', primaryMailbox?.id] });
     }
   });
   
