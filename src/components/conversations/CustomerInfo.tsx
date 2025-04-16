@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
@@ -12,6 +11,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CustomerForm } from '@/components/customers/CustomerForm';
+import { CustomerFormData } from '@/types/customer';
 
 interface CustomerInfoProps {
   selectedEmail: string | null;
@@ -35,16 +35,13 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     updateCustomer
   } = useCustomers();
   
-  // State to track if this email is from a known customer
   const [relatedCustomer, setRelatedCustomer] = useState<any>(null);
   const [customerStatus, setCustomerStatus] = useState<'unknown' | 'related' | 'irrelevant' | 'spam'>('unknown');
   
-  // Get the email address of the sender
   const senderEmail = conversation?.customer?.email || 
                       (conversation?.email?.from && conversation.email.from.match(/<([^>]+)>/)?.[1]) || 
                       '';
 
-  // Check if the email sender is associated with an existing customer
   useEffect(() => {
     if (!senderEmail || customersLoading || !customers) return;
     
@@ -65,7 +62,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     }
   }, [senderEmail, customers, customersLoading]);
   
-  // Debug logging
   useEffect(() => {
     console.log('CustomerInfo rendering with props:', {
       hasSelectedEmail: !!selectedEmail,
@@ -78,7 +74,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     });
   }, [selectedEmail, conversation, isLoading, error, customerStatus]);
   
-  // Handle marking email as irrelevant
   const handleMarkAsIrrelevant = () => {
     setCustomerStatus('irrelevant');
     toast({
@@ -87,7 +82,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     });
   };
   
-  // Handle marking email as spam
   const handleMarkAsSpam = () => {
     setCustomerStatus('spam');
     toast({
@@ -96,8 +90,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     });
   };
   
-  // Handle creating a new customer
-  const handleCreateCustomer = (data: any) => {
+  const handleCreateCustomer = (data: CustomerFormData) => {
     createCustomer.mutate({
       ...data,
       email: senderEmail
@@ -112,7 +105,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     });
   };
   
-  // If no email is selected or we're loading, show a placeholder
   if (!selectedEmail || isLoading) {
     return (
       <Card className="h-full flex flex-col">
@@ -133,7 +125,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     );
   }
   
-  // If there's an error, show error state
   if (error) {
     return (
       <Card className="h-full flex flex-col">
@@ -150,7 +141,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     );
   }
   
-  // If there's no conversation data yet, show loading
   if (!conversation) {
     return (
       <Card className="h-full flex flex-col">
@@ -167,27 +157,21 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     );
   }
   
-  // Extract customer information from conversation
   const { customer } = conversation;
   
-  // Get customer name - either from customer object or from the email
   const customerName = customer?.name || conversation.email.from.split('<')[0].trim();
   
-  // Get customer company - either from customer object or try to infer from email domain
   const customerCompany = customer?.company || 
     (senderEmail && !senderEmail.includes('@gmail.com') && !senderEmail.includes('@outlook.com') && !senderEmail.includes('@yahoo.com') ? 
       senderEmail.split('@')[1].split('.')[0].charAt(0).toUpperCase() + senderEmail.split('@')[1].split('.')[0].slice(1) : 
       undefined);
   
-  // Infer website from email domain
   const inferredWebsite = senderEmail && !senderEmail.includes('@gmail.com') && !senderEmail.includes('@outlook.com') && !senderEmail.includes('@yahoo.com') ?
     `https://www.${senderEmail.split('@')[1]}` : 
     undefined;
   
-  // Get total messages in this conversation
   const totalMessages = conversation.messages?.length || 0;
   
-  // Get initials for avatar
   const initials = customerName
     .split(' ')
     .map(name => name[0])
@@ -223,7 +207,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
           </div>
         </div>
         
-        {/* Customer Actions - only show if not yet categorized or not related */}
         {customerStatus === 'unknown' && (
           <div className="flex flex-col gap-2 mt-4">
             <h4 className="text-sm font-semibold mb-1">Actions</h4>
