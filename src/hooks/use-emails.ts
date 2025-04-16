@@ -163,6 +163,46 @@ export const useEmails = () => {
       });
     }
   });
+  
+  // Mark email as irrelevant
+  const markAsIrrelevant = useMutation({
+    mutationFn: async (emailId: string) => {
+      // In a real implementation, we would call an API to mark the email as irrelevant
+      console.log('Marking email as irrelevant:', emailId);
+      
+      // For now, just return success
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email marked as irrelevant",
+        description: "The email has been marked as irrelevant."
+      });
+      
+      // Optionally, we could update the local state or refetch emails
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+    }
+  });
+  
+  // Mark email as spam
+  const markAsSpam = useMutation({
+    mutationFn: async (emailId: string) => {
+      // In a real implementation, we would call an API to mark the email as spam
+      console.log('Marking email as spam:', emailId);
+      
+      // For now, just return success
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email marked as spam",
+        description: "The email has been marked as spam."
+      });
+      
+      // Optionally, we could update the local state or refetch emails
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+    }
+  });
 
   // Handle email selection with improved debugging
   const handleSelectEmail = useCallback((emailId: string) => {
@@ -192,6 +232,8 @@ export const useEmails = () => {
     setSelectedEmail: handleSelectEmail,
     getEmailById,
     markAsRead,
+    markAsIrrelevant,
+    markAsSpam,
     unreadCount,
     conversation,
     conversationLoading,
