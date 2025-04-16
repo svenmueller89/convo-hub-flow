@@ -3,11 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { EmailSummary, EmailsResponse } from '../_shared/types.ts';
 
-// Store the mock emails in memory with a global variable or using a key-value DB
-// This is a more persistent solution than relying on function-scoped variables
-// In a real application, this would be stored in a database
-// Use AsyncLocalStorage or Deno.env's custom storage to persist across invocations
-const EMAILS_KEY = "mock_emails_storage";
+// In-memory storage as a fallback
+// This is temporary and will reset when the function restarts
+let emailsStore: EmailSummary[] | null = null;
 
 // Initial emails data - only used if nothing exists in storage yet
 const initialMockEmails: EmailSummary[] = [
@@ -109,43 +107,23 @@ const initialMockEmails: EmailSummary[] = [
   }
 ];
 
-// Helper function to get emails from storage
+// Helper function to get emails from storage or memory
 async function getStoredEmails(): Promise<EmailSummary[]> {
-  try {
-    // In a real application, this would fetch from a database
-    // For now, we'll use a server-side variable that persists across requests
-    
-    // Since Deno Deploy functions are stateless, we would need a storage solution
-    // This is a simplified mock using global state (for demo purposes only)
-    const kv = await Deno.openKv();
-    const storedData = await kv.get([EMAILS_KEY]);
-    
-    if (storedData.value) {
-      console.log("Using stored emails from KV store");
-      return storedData.value as EmailSummary[];
-    } else {
-      console.log("No stored emails found in KV store, using initial data");
-      // Initial setup - store the default emails
-      await kv.set([EMAILS_KEY], initialMockEmails);
-      return initialMockEmails;
-    }
-  } catch (error) {
-    console.error("Error accessing email storage:", error);
-    // Fallback to initial data if storage fails
-    return [...initialMockEmails]; 
+  if (emailsStore) {
+    console.log("Using emails from in-memory store");
+    return emailsStore;
   }
+  
+  // Initialize with default data
+  console.log("No stored emails found, using initial data");
+  emailsStore = [...initialMockEmails];
+  return emailsStore;
 }
 
-// Helper function to save emails to storage
+// Helper function to save emails to memory
 async function saveEmails(emails: EmailSummary[]): Promise<void> {
-  try {
-    // In a real application, this would update a database
-    const kv = await Deno.openKv();
-    await kv.set([EMAILS_KEY], emails);
-    console.log("Saved updated emails to KV store");
-  } catch (error) {
-    console.error("Error saving emails to storage:", error);
-  }
+  emailsStore = emails;
+  console.log("Saved updated emails to in-memory store");
 }
 
 const handler = async (req: Request) => {
@@ -246,6 +224,8 @@ const handler = async (req: Request) => {
       totalCount,
       unreadCount
     };
+
+    console.log("Emails fetched successfully:", response);
 
     return new Response(
       JSON.stringify(response),
