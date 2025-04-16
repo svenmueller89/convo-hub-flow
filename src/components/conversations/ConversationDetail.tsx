@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -75,7 +74,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   isLoading, 
   error 
 }) => {
-  // Enhanced debug logging
   useEffect(() => {
     console.log('ConversationDetail received props:', {
       hasSelectedEmail: !!selectedEmail,
@@ -84,9 +82,16 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
       isLoading,
       error: error ? String(error) : null
     });
+
+    if (conversation) {
+      console.log('Conversation details:', {
+        emailSubject: conversation.email?.subject,
+        messagesCount: conversation.messages?.length,
+        customerInfo: conversation.customer
+      });
+    }
   }, [selectedEmail, conversation, isLoading, error]);
   
-  // Show empty state when no conversation is selected
   if (!selectedEmail) {
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
@@ -101,7 +106,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     );
   }
 
-  // Show loading state while conversation is loading
   if (isLoading) {
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
@@ -112,13 +116,18 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     );
   }
   
-  // Show error state if conversation failed to load
   if (error || !conversation) {
     const errorMessage = error 
       ? typeof error === 'object'
         ? (error as any)?.message || 'Unknown error'
         : String(error)
       : 'Could not retrieve conversation data';
+      
+    console.error('Conversation Detail Error:', {
+      errorMessage,
+      selectedEmail,
+      conversation
+    });
       
     return (
       <div className="bg-white border rounded-md overflow-hidden h-full flex items-center justify-center">
@@ -131,7 +140,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
             variant="outline" 
             className="mt-4"
             onClick={() => {
-              // Try refetching
               window.location.reload();
             }}
           >
@@ -142,7 +150,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     );
   }
   
-  // Extract data from the conversation
   const { email, messages, customer } = conversation;
   
   return (
@@ -190,7 +197,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         <div className="max-w-3xl mx-auto">
           {messages.map((message) => {
-            // Determine if the message is from a customer or from our team
             const isCustomer = !message.from.includes('support@convohub.com');
             const senderName = message.from.split('<')[0].trim();
             const formattedTime = format(new Date(message.date), 'h:mm a');
@@ -248,3 +254,5 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     </div>
   );
 };
+
+export default ConversationDetail;
