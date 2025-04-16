@@ -111,8 +111,8 @@ export const useEmails = () => {
     retry: 1, // Limit retries to avoid infinite loops
   });
   
-  const emails = data?.emails || [];
-  const unreadCount = data?.unreadCount || 0;
+  // Filter emails - show only 'new' emails (no status set) in the inbox
+  const emails = (data?.emails || []).filter(email => !email.status || email.status === 'new');
   const conversation = conversationData || null;
 
   // Debug logging
@@ -121,40 +121,39 @@ export const useEmails = () => {
       selectedEmail, 
       conversation: !!conversation,
       conversationLoading,
-      emailsCount: emails.length,
-      unreadCount
+      emailsCount: emails.length
     });
-  }, [selectedEmail, conversation, conversationLoading, emails.length, unreadCount]);
+  }, [selectedEmail, conversation, conversationLoading, emails.length]);
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
-    return emails.find(email => email.id === emailId);
+    return (data?.emails || []).find(email => email.id === emailId);
   };
 
-  // Mark email as read - improved implementation with proper cache updates
-  const markAsRead = useMutation({
-    mutationFn: async (emailId: string) => {
-      console.log('Marking email as read:', emailId);
+  // Set status for an email
+  const setEmailStatus = useMutation({
+    mutationFn: async ({ emailId, status }: { emailId: string; status: 'new' | 'in-progress' | 'resolved' }) => {
+      console.log(`Setting email ${emailId} status to ${status}`);
       
       try {
-        // Call the dedicated mark-as-read edge function
-        const { data, error } = await supabase.functions.invoke('mark-as-read', {
-          body: { emailId }
+        // Call the edge function to update email status
+        const { data, error } = await supabase.functions.invoke('update-email-status', {
+          body: { emailId, status }
         });
         
         if (error) {
-          console.error('Error marking email as read:', error);
+          console.error('Error updating email status:', error);
           throw error;
         }
         
-        console.log('Mark as read response:', data);
+        console.log('Update email status response:', data);
         return data;
       } catch (error) {
-        console.error('Error marking email as read:', error);
+        console.error('Error updating email status:', error);
         throw error;
       }
     },
-    onMutate: async (emailId) => {
+    onMutate: async ({ emailId, status }) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['emails', primaryMailbox?.id] });
       
@@ -167,11 +166,10 @@ export const useEmails = () => {
           ...data,
           emails: data.emails.map(email => {
             if (email.id === emailId) {
-              return { ...email, read: true };
+              return { ...email, status };
             }
             return email;
-          }),
-          unreadCount: Math.max(0, (data.unreadCount || 0) - 1)
+          })
         };
         
         // Update the cache with our optimistic data
@@ -182,23 +180,18 @@ export const useEmails = () => {
       return { previousData };
     },
     onSuccess: async (result) => {
-      console.log('Mark as read mutation successful:', result);
-      
-      // Update the query data with the new emails from the result
-      if (result && result.data) {
-        queryClient.setQueryData(['emails', primaryMailbox?.id], result.data);
-      }
+      console.log('Set email status mutation successful:', result);
       
       // Force a refetch to ensure everything is in sync
       await refetchEmails();
       
       toast({
-        title: "Email marked as read",
-        description: "The email has been marked as read.",
+        title: "Email status updated",
+        description: "The email status has been updated successfully.",
       });
     },
-    onError: (error, emailId, context) => {
-      console.error('Error in mark as read mutation:', error);
+    onError: (error, variables, context) => {
+      console.error('Error in set email status mutation:', error);
       
       // Roll back to the previous data if available
       if (context?.previousData) {
@@ -206,8 +199,8 @@ export const useEmails = () => {
       }
       
       toast({
-        title: "Failed to mark email as read",
-        description: "There was an error marking the email as read.",
+        title: "Failed to update email status",
+        description: "There was an error updating the email status.",
         variant: "destructive",
       });
     },
@@ -284,12 +277,12 @@ export const useEmails = () => {
     selectedEmail,
     setSelectedEmail: handleSelectEmail,
     getEmailById,
-    markAsRead,
+    setEmailStatus,
     markAsIrrelevant,
     markAsSpam,
-    unreadCount,
     conversation,
     conversationLoading,
-    conversationError
+    conversationError,
+    allEmails: data?.emails || []
   };
 };

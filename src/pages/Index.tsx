@@ -1,69 +1,25 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { EmailList } from '@/components/conversations/EmailList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 import { useEmails } from '@/hooks/use-emails';
-import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { toast } = useToast();
   const { 
     selectedEmail, 
     conversation, 
     conversationLoading, 
     emails, 
     conversationError,
-    setSelectedEmail,
-    unreadCount,
-    markAsRead 
+    setSelectedEmail
   } = useEmails();
   
-  // Debug logging
-  useEffect(() => {
-    console.log('Index page rendered with:', { 
-      selectedEmail,
-      hasEmails: emails.length > 0,
-      hasConversation: !!conversation,
-      conversationLoading,
-      unreadCount,
-      conversationError: conversationError ? 'Error: ' + String(conversationError) : 'No error'
-    });
-    
-    // Show error toast if there's an issue with conversation loading
-    if (conversationError && selectedEmail) {
-      toast({
-        title: "Error loading conversation",
-        description: "There was a problem loading the conversation details. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [selectedEmail, emails, conversation, conversationLoading, conversationError, toast, unreadCount]);
-  
-  // Handle email selection and mark as read
+  // Handle email selection
   const handleEmailSelect = (emailId: string) => {
     console.log(`Index: selecting email ${emailId}`);
-    
-    // Get the email from our list
-    const email = emails.find(e => e.id === emailId);
-    
-    // If the email exists and is unread, mark it as read
-    if (email && !email.read) {
-      console.log(`Email ${emailId} is unread, marking as read`);
-      
-      // Set the selected email first to avoid UI flashing
-      setSelectedEmail(emailId);
-      
-      // Then mark as read (slightly delayed to ensure UI updates properly)
-      setTimeout(() => {
-        markAsRead.mutate(emailId);
-      }, 10);
-    } else {
-      console.log(`Email ${emailId} is already read or not found in emails list`);
-      // Just set the selected email
-      setSelectedEmail(emailId);
-    }
+    setSelectedEmail(emailId);
   };
   
   return (

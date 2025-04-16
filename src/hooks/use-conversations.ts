@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EmailSummary } from '@/types/email';
 
-type ConversationFilter = 'all' | 'new' | 'in-progress' | 'resolved';
+type ConversationFilter = 'all' | 'in-progress' | 'resolved';
 type SortOption = 'newest' | 'oldest';
 
 export const useConversations = () => {
@@ -42,14 +42,19 @@ export const useConversations = () => {
     },
   });
 
-  // Process and filter conversations
+  // Process and filter conversations - only include emails with a status (not 'new')
   const conversations = useMemo(() => {
     if (!data?.emails || !Array.isArray(data.emails)) return [];
     
-    // First group emails by conversation_id to get unique conversations
+    // First filter emails to only include those with a status of in-progress or resolved
+    let result = data.emails.filter(email => 
+      email.status === 'in-progress' || email.status === 'resolved'
+    );
+    
+    // Group emails by conversation_id to get unique conversations
     const conversationMap = new Map();
     
-    data.emails.forEach((email: EmailSummary) => {
+    result.forEach((email: EmailSummary) => {
       if (!conversationMap.has(email.conversation_id)) {
         conversationMap.set(email.conversation_id, email);
       } else {
@@ -61,7 +66,7 @@ export const useConversations = () => {
       }
     });
     
-    let result = Array.from(conversationMap.values());
+    result = Array.from(conversationMap.values());
     
     // Apply filters
     if (filter !== 'all') {
@@ -90,22 +95,6 @@ export const useConversations = () => {
     return result;
   }, [data, filter, sortBy, search]);
 
-  // Calculate unread counts
-  const unreadCounts = useMemo(() => {
-    if (!data?.emails) return { total: 0, new: 0, inProgress: 0, resolved: 0 };
-    
-    return data.emails.reduce((acc: any, email: EmailSummary) => {
-      if (!email.read) {
-        acc.total += 1;
-        
-        if (email.status === 'new') acc.new += 1;
-        if (email.status === 'in-progress') acc.inProgress += 1;
-        if (email.status === 'resolved') acc.resolved += 1;
-      }
-      return acc;
-    }, { total: 0, new: 0, inProgress: 0, resolved: 0 });
-  }, [data]);
-
   return {
     conversations,
     isLoading,
@@ -116,7 +105,6 @@ export const useConversations = () => {
     setSortBy,
     search,
     setSearch,
-    refetch,
-    unreadCounts
+    refetch
   };
 };

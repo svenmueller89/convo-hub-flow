@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Search, Filter, ArrowUpDown, Paperclip } from 'lucide-react';
 import { useConversations } from '@/hooks/use-conversations';
@@ -29,7 +28,6 @@ interface ConversationItemProps {
   subject: string;
   preview: string;
   date: string;
-  unread: boolean;
   status: 'new' | 'in-progress' | 'resolved';
   selected?: boolean;
   hasAttachments: boolean;
@@ -41,7 +39,6 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   subject,
   preview,
   date,
-  unread,
   status,
   selected,
   hasAttachments,
@@ -62,8 +59,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     <div 
       className={cn(
         "p-3 border-b border-gray-200 cursor-pointer",
-        selected ? "bg-convo-secondary" : "hover:bg-gray-50",
-        unread ? "bg-blue-50" : ""
+        selected ? "bg-convo-secondary" : "hover:bg-gray-50"
       )}
       onClick={onClick}
     >
@@ -74,7 +70,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-            <p className={cn("text-sm font-medium truncate", unread && "font-semibold")}>
+            <p className="text-sm font-medium truncate">
               {fromName}
             </p>
             <p className="text-xs text-gray-500">{formattedDate}</p>
@@ -99,10 +95,15 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   );
 };
 
-export const ConversationList: React.FC = () => {
-  const navigate = useNavigate();
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  
+interface ConversationListProps {
+  selectedConversationId: string | null;
+  onSelectConversation: (conversationId: string) => void;
+}
+
+export const ConversationList: React.FC<ConversationListProps> = ({ 
+  selectedConversationId, 
+  onSelectConversation 
+}) => {
   const { 
     conversations, 
     isLoading, 
@@ -111,14 +112,13 @@ export const ConversationList: React.FC = () => {
     search, 
     setSearch, 
     sortBy, 
-    setSortBy, 
-    unreadCounts 
+    setSortBy 
   } = useConversations();
   
-  const handleConversationSelect = (conversationId: string) => {
-    setSelectedConversation(conversationId);
-    navigate(`/conversation/${conversationId}`);
-  };
+  // Filter out emails without a status
+  const statusFilteredConversations = conversations.filter(conv => 
+    conv.status && conv.status !== 'new'
+  );
 
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">
@@ -147,9 +147,6 @@ export const ConversationList: React.FC = () => {
               <DropdownMenuItem onClick={() => setFilter('all')}>
                 All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter('new')}>
-                New
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilter('in-progress')}>
                 In Progress
               </DropdownMenuItem>
@@ -171,54 +168,24 @@ export const ConversationList: React.FC = () => {
         </div>
 
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger 
               value="all" 
               onClick={() => setFilter('all')}
-              className="relative"
             >
               All
-              {unreadCounts.total > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-convo-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {unreadCounts.total}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="new" 
-              onClick={() => setFilter('new')}
-              className="relative"
-            >
-              New
-              {unreadCounts.new > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-convo-warning text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {unreadCounts.new}
-                </span>
-              )}
             </TabsTrigger>
             <TabsTrigger 
               value="in-progress" 
               onClick={() => setFilter('in-progress')}
-              className="relative"
             >
               In Progress
-              {unreadCounts.inProgress > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-convo-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {unreadCounts.inProgress}
-                </span>
-              )}
             </TabsTrigger>
             <TabsTrigger 
               value="resolved" 
               onClick={() => setFilter('resolved')}
-              className="relative"
             >
               Resolved
-              {unreadCounts.resolved > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-convo-success text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {unreadCounts.resolved}
-                </span>
-              )}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -229,12 +196,12 @@ export const ConversationList: React.FC = () => {
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">Loading conversations...</p>
           </div>
-        ) : conversations.length === 0 ? (
+        ) : statusFilteredConversations.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">No conversations found</p>
           </div>
         ) : (
-          conversations.map((conversation) => (
+          statusFilteredConversations.map((conversation) => (
             <ConversationItem
               key={conversation.id}
               id={conversation.id}
@@ -242,11 +209,10 @@ export const ConversationList: React.FC = () => {
               subject={conversation.subject}
               preview={conversation.preview}
               date={conversation.date}
-              unread={!conversation.read}
               status={conversation.status}
-              selected={selectedConversation === conversation.conversation_id}
+              selected={selectedConversationId === conversation.conversation_id}
               hasAttachments={conversation.has_attachments}
-              onClick={() => handleConversationSelect(conversation.conversation_id)}
+              onClick={() => onSelectConversation(conversation.conversation_id)}
             />
           ))
         )}

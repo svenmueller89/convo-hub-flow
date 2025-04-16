@@ -1,20 +1,63 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConversationList } from '@/components/conversations/ConversationList';
+import { ConversationDetail } from '@/components/conversations/ConversationDetail';
+import { CustomerInfo } from '@/components/conversations/CustomerInfo';
+import { useEmails } from '@/hooks/use-emails';
 
 const ConversationsPage = () => {
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const { allEmails, conversation, conversationLoading, conversationError } = useEmails();
+
+  // Find the email corresponding to the selected conversation
+  const selectedEmail = selectedConversationId 
+    ? allEmails.find(email => email.conversation_id === selectedConversationId)?.id || null
+    : null;
+
+  const handleSelectConversation = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+  };
+
   return (
     <AppShell>
       <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-4 h-[calc(100vh-7rem)] overflow-hidden">
-          <ConversationList />
+          <ConversationList 
+            selectedConversationId={selectedConversationId} 
+            onSelectConversation={handleSelectConversation}
+          />
         </div>
-        <div className="md:col-span-8 h-[calc(100vh-7rem)] overflow-hidden flex items-center justify-center">
-          <div className="text-center p-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Select a conversation</h2>
-            <p className="text-gray-500">Choose a conversation from the list to view its details</p>
-          </div>
+        <div className="md:col-span-5 h-[calc(100vh-7rem)] overflow-hidden">
+          {selectedConversationId ? (
+            <ConversationDetail
+              selectedEmail={selectedEmail}
+              conversation={conversation}
+              isLoading={conversationLoading}
+              error={conversationError}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center text-center p-8">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">Select a conversation</h2>
+                <p className="text-gray-500">Choose a conversation from the list to view its details</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
+          {selectedConversationId ? (
+            <CustomerInfo
+              selectedEmail={selectedEmail}
+              conversation={conversation}
+              isLoading={conversationLoading}
+              error={conversationError}
+            />
+          ) : (
+            <div className="h-full border rounded-md bg-white flex items-center justify-center">
+              <p className="text-gray-500">Select a conversation to view customer details</p>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

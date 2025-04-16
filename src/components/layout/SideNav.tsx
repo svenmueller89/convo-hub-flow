@@ -17,16 +17,18 @@ import { useEmails } from '@/hooks/use-emails';
 
 export const SideNav: React.FC = () => {
   const location = useLocation();
-  const { unreadCount } = useEmails();
+  const { emails } = useEmails();
+  
+  // Count of new emails (inbox)
+  const newCount = emails?.length || 0;
   
   const navigation = [
-    { name: 'Inbox', href: '/', icon: Inbox, count: unreadCount, active: location.pathname === '/' },
+    { name: 'Inbox', href: '/', icon: Inbox, count: newCount, active: location.pathname === '/' },
     { name: 'Customers', href: '/customers', icon: Users, active: location.pathname === '/customers' },
     { 
       name: 'Conversations', 
       href: '/conversations', 
       icon: MessageSquare, 
-      count: unreadCount, 
       active: location.pathname === '/conversations' 
     },
     { name: 'Completed', href: '/completed', icon: CheckCircle, active: location.pathname === '/completed' },
