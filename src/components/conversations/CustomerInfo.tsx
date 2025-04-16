@@ -103,27 +103,55 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     );
   }
 
-  // Use the customer data from the conversation
+  // Extract email domain for company website if company is not provided
+  const emailDomain = conversation.customer.email ? 
+    conversation.customer.email.split('@')[1] : null;
+  const inferredWebsite = emailDomain ? `www.${emailDomain}` : null;
+  
+  // Use the first message date as customer since date
+  const customerSinceDate = conversation.messages && conversation.messages.length > 0 
+    ? new Date(conversation.messages[0].date) 
+    : new Date();
+  
+  // Format the customer since date as month and year
+  const customerSince = customerSinceDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+  
+  // Build customer data from conversation
   const customer = {
     name: conversation.customer.company || conversation.customer.name,
     email: conversation.customer.email,
-    phone: "+1 (555) 123-4567", // Mock data
-    website: "www.acmeinc.com", // Mock data
+    phone: conversation.customer.id.includes('cust-') ? "+1 (555) 123-4567" : "Not available", // Placeholder phone
+    website: inferredWebsite,
     status: "Active",
-    customerSince: "Jan 2023",
-    totalConversations: 12,
-    lastContact: "March 1, 2025",
-    notes: "Enterprise client, dedicated support representative assigned.",
+    customerSince: customerSince,
+    totalConversations: conversation.messages.length,
+    lastContact: new Date(conversation.email.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    notes: conversation.customer.company 
+      ? `${conversation.customer.name} from ${conversation.customer.company}` 
+      : `Individual customer`,
     recentConversations: [
-      { id: conversation.email.conversation_id, subject: conversation.email.subject, date: new Date(conversation.email.date).toLocaleDateString() },
-      { id: "2", subject: "Monthly Newsletter Setup", date: "Feb 15, 2025" },
-      { id: "3", subject: "Support Subscription Renewal", date: "Jan 28, 2025" }
+      { 
+        id: conversation.email.conversation_id, 
+        subject: conversation.email.subject, 
+        date: new Date(conversation.email.date).toLocaleDateString() 
+      }
     ],
     contacts: [
-      { name: conversation.customer.name, role: "Primary Contact", email: conversation.customer.email },
-      { name: "Sarah Lee", role: "CEO", email: "sarah@acmeinc.com" }
+      { 
+        name: conversation.customer.name, 
+        role: conversation.customer.company ? "Primary Contact" : "Customer", 
+        email: conversation.customer.email 
+      }
     ]
   };
+
+  // Get initials from name for avatar
+  const initials = customer.name
+    .split(' ')
+    .map(name => name[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
   return (
     <div className="h-full">
@@ -132,7 +160,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 bg-convo-secondary text-convo-primary">
-                <span className="font-medium">{customer.name.substring(0, 2).toUpperCase()}</span>
+                <span className="font-medium">{initials}</span>
               </Avatar>
               <div>
                 <CardTitle className="text-lg">{customer.name}</CardTitle>
@@ -156,7 +184,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
                   <Building className="h-4 w-4 text-gray-500" />
                   <span className="font-medium">Company</span>
                 </div>
-                <p className="text-sm pl-6">{customer.name}</p>
+                <p className="text-sm pl-6">{conversation.customer.company || 'Individual Customer'}</p>
               </div>
               
               <div className="space-y-2">
@@ -175,13 +203,15 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
                 <p className="text-sm pl-6">{customer.phone}</p>
               </div>
               
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <ExternalLink className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Website</span>
+              {customer.website && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <ExternalLink className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Website</span>
+                  </div>
+                  <p className="text-sm pl-6">{customer.website}</p>
                 </div>
-                <p className="text-sm pl-6">{customer.website}</p>
-              </div>
+              )}
               
               <Separator />
               
@@ -193,7 +223,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
                     <p className="text-sm">{customer.customerSince}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Conversations</p>
+                    <p className="text-xs text-gray-500">Messages</p>
                     <p className="text-sm">{customer.totalConversations}</p>
                   </div>
                   <div>
@@ -212,19 +242,20 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
             </TabsContent>
             
             <TabsContent value="history" className="p-4 space-y-4">
-              <p className="text-sm font-medium">Recent Conversations</p>
+              <p className="text-sm font-medium">Conversation History</p>
               <div className="space-y-3">
-                {customer.recentConversations.map((conversation) => (
-                  <div key={conversation.id} className="flex items-start gap-3">
+                {conversation.messages.map((message) => (
+                  <div key={message.id} className="flex items-start gap-3">
                     <div className="bg-gray-100 p-1 rounded">
                       <MessageSquare className="h-4 w-4 text-gray-500" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{conversation.subject}</p>
+                      <p className="text-sm font-medium">{message.subject}</p>
                       <div className="flex items-center text-xs text-gray-500">
                         <Calendar className="h-3 w-3 mr-1" />
-                        <span>{conversation.date}</span>
+                        <span>{new Date(message.date).toLocaleDateString()}</span>
                       </div>
+                      <p className="text-xs text-gray-500 mt-1 truncate">{message.body.substring(0, 60)}...</p>
                     </div>
                   </div>
                 ))}
@@ -232,15 +263,20 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
             </TabsContent>
             
             <TabsContent value="contacts" className="p-4 space-y-4">
-              <p className="text-sm font-medium">Company Contacts</p>
+              <p className="text-sm font-medium">{conversation.customer.company ? 'Company Contacts' : 'Contact Information'}</p>
               <div className="space-y-4">
-                {customer.contacts.map((contact, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <p className="text-sm font-medium">{contact.name}</p>
-                    <p className="text-xs text-gray-500">{contact.role}</p>
-                    <p className="text-xs text-convo-primary">{contact.email}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{conversation.customer.name}</p>
+                  <p className="text-xs text-gray-500">{conversation.customer.company ? 'Primary Contact' : 'Customer'}</p>
+                  <p className="text-xs text-convo-primary">{conversation.customer.email}</p>
+                </div>
+                {conversation.customer.company && (
+                  <div className="p-4 border border-dashed rounded-md">
+                    <p className="text-xs text-gray-500 text-center">
+                      No additional contacts available for {conversation.customer.company}
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </TabsContent>
           </Tabs>
