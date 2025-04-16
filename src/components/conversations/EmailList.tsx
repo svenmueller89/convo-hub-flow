@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +38,7 @@ const EmailItem: React.FC<EmailItemProps> = ({
   // Enhanced click handler with debugging
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log(`Email clicked: ${email.id} - ${email.subject}`);
+    console.log(`Email clicked: ${email.id} - ${email.subject} - Read status: ${email.read}`);
     onClick(email.id);
   };
   
@@ -93,13 +93,15 @@ export const EmailList: React.FC<EmailListProps> = ({ selectedEmail, onSelectEma
   const { emails, isLoading, unreadCount } = useEmails();
   
   // Debug logging to see what's happening
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('EmailList rendering with:', { 
       emailsCount: emails?.length,
+      emailsWithReadStatus: emails?.map(e => ({ id: e.id, read: e.read })),
       selectedEmail,
-      isLoading
+      isLoading,
+      unreadCount
     });
-  }, [emails, selectedEmail, isLoading]);
+  }, [emails, selectedEmail, isLoading, unreadCount]);
   
   const handleSelectEmail = (emailId: string) => {
     console.log(`EmailList: selecting email ${emailId}`);

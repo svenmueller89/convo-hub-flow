@@ -51,7 +51,16 @@ const Index = () => {
     // If the email exists and is unread, mark it as read
     if (email && !email.read) {
       console.log(`Email ${emailId} is unread, marking as read`);
-      markAsRead.mutate(emailId);
+      markAsRead.mutate(emailId, {
+        onSuccess: (data) => {
+          console.log('Mark as read success response:', data);
+        },
+        onError: (error) => {
+          console.error('Mark as read error:', error);
+        }
+      });
+    } else {
+      console.log(`Email ${emailId} is already read or not found in emails list`);
     }
     
     // Set the selected email

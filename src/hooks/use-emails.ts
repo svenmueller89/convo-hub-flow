@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -131,7 +132,7 @@ export const useEmails = () => {
     return emails.find(email => email.id === emailId);
   };
 
-  // Mark email as read - fixed implementation
+  // Mark email as read - fixed implementation with detailed logging
   const markAsRead = useMutation({
     mutationFn: async (emailId: string) => {
       console.log('Marking email as read:', emailId);
@@ -148,14 +149,14 @@ export const useEmails = () => {
         }
         
         console.log('Mark as read response:', data);
-        return { success: true, emailId };
+        return data;
       } catch (error) {
         console.error('Error marking email as read:', error);
         throw error;
       }
     },
     onSuccess: (result) => {
-      console.log('Mark as read successful for email:', result.emailId);
+      console.log('Mark as read mutation successful:', result);
       
       // Update the local emails data to reflect the read status
       if (data && data.emails) {
@@ -168,6 +169,7 @@ export const useEmails = () => {
           return email;
         });
         
+        // Calculate new unread count
         const newUnreadCount = Math.max(0, (data.unreadCount || 0) - 1);
         console.log(`Updating unread count from ${data.unreadCount} to ${newUnreadCount}`);
         
@@ -177,10 +179,16 @@ export const useEmails = () => {
           emails: updatedEmails,
           unreadCount: newUnreadCount
         });
+        
+        console.log('Updated query cache data after marking as read');
+      } else {
+        console.warn('Cannot update local cache: data or data.emails is undefined');
       }
       
       // Force a refetch to ensure we have the latest data
-      refetchEmails();
+      refetchEmails().then(() => {
+        console.log('Email data refetched after marking as read');
+      });
       
       toast({
         title: "Email marked as read",
@@ -188,7 +196,7 @@ export const useEmails = () => {
       });
     },
     onError: (error) => {
-      console.error('Error marking email as read:', error);
+      console.error('Error in mark as read mutation:', error);
       toast({
         title: "Failed to mark email as read",
         description: "There was an error marking the email as read.",
