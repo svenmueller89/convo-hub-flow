@@ -1,4 +1,5 @@
 
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 
@@ -54,7 +55,7 @@ const handler = async (req: Request) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, emailId }),
       { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
 
@@ -68,3 +69,4 @@ const handler = async (req: Request) => {
 }
 
 Deno.serve(handler);
+

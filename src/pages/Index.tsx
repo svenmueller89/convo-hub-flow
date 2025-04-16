@@ -16,7 +16,8 @@ const Index = () => {
     emails, 
     conversationError,
     setSelectedEmail,
-    unreadCount 
+    unreadCount,
+    markAsRead 
   } = useEmails();
   
   // Debug logging
@@ -40,11 +41,28 @@ const Index = () => {
     }
   }, [selectedEmail, emails, conversation, conversationLoading, conversationError, toast, unreadCount]);
   
+  // Handle email selection and mark as read
+  const handleEmailSelect = (emailId: string) => {
+    console.log(`Index: selecting email ${emailId}`);
+    
+    // Get the email from our list
+    const email = emails.find(e => e.id === emailId);
+    
+    // If the email exists and is unread, mark it as read
+    if (email && !email.read) {
+      console.log(`Email ${emailId} is unread, marking as read`);
+      markAsRead.mutate(emailId);
+    }
+    
+    // Set the selected email
+    setSelectedEmail(emailId);
+  };
+  
   return (
     <AppShell>
       <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
-          <EmailList selectedEmail={selectedEmail} onSelectEmail={setSelectedEmail} />
+          <EmailList selectedEmail={selectedEmail} onSelectEmail={handleEmailSelect} />
         </div>
         <div className="md:col-span-6 h-[calc(100vh-7rem)] overflow-hidden">
           <ConversationDetail 

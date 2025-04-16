@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -101,11 +100,6 @@ export const useEmails = () => {
         
         console.log('Conversation fetched successfully:', data);
         
-        // If the email was unread, mark it as read
-        if (email && !email.read) {
-          markAsRead.mutate(selectedEmail);
-        }
-        
         return data as ConversationDetailResponse;
       } catch (error) {
         console.error('Error fetching conversation:', error);
@@ -127,9 +121,10 @@ export const useEmails = () => {
       selectedEmail, 
       conversation: !!conversation,
       conversationLoading,
-      emailsCount: emails.length
+      emailsCount: emails.length,
+      unreadCount
     });
-  }, [selectedEmail, conversation, conversationLoading, emails.length]);
+  }, [selectedEmail, conversation, conversationLoading, emails.length, unreadCount]);
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
@@ -152,6 +147,7 @@ export const useEmails = () => {
           throw error;
         }
         
+        console.log('Mark as read response:', data);
         return { success: true, emailId };
       } catch (error) {
         console.error('Error marking email as read:', error);
@@ -159,26 +155,32 @@ export const useEmails = () => {
       }
     },
     onSuccess: (result) => {
+      console.log('Mark as read successful for email:', result.emailId);
+      
       // Update the local emails data to reflect the read status
       if (data && data.emails) {
         // Find the email in the current data and update its read status
         const updatedEmails = data.emails.map(email => {
           if (email.id === result.emailId) {
+            console.log(`Updating email ${email.id} read status to true`);
             return { ...email, read: true };
           }
           return email;
         });
         
+        const newUnreadCount = Math.max(0, (data.unreadCount || 0) - 1);
+        console.log(`Updating unread count from ${data.unreadCount} to ${newUnreadCount}`);
+        
         // Update the query data directly
         queryClient.setQueryData(['emails', primaryMailbox?.id], {
           ...data,
           emails: updatedEmails,
-          unreadCount: Math.max(0, (data.unreadCount || 0) - 1)
+          unreadCount: newUnreadCount
         });
       }
       
-      // Invalidate queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      // Force a refetch to ensure we have the latest data
+      refetchEmails();
       
       toast({
         title: "Email marked as read",
@@ -242,15 +244,6 @@ export const useEmails = () => {
     // First, set the selected email ID
     setSelectedEmail(emailId);
     
-    // Get the email from the current list
-    const email = emails.find(e => e.id === emailId);
-    
-    // If the email is unread, mark it as read
-    if (email && !email.read) {
-      console.log('Email is unread, marking as read');
-      markAsRead.mutate(emailId);
-    }
-    
     // Force refetch conversation if needed
     if (emailId) {
       // Wait for next tick to ensure selectedEmail is updated
@@ -259,7 +252,7 @@ export const useEmails = () => {
         queryClient.invalidateQueries({ queryKey: ['conversation', emailId] });
       }, 0);
     }
-  }, [queryClient, emails, markAsRead]);
+  }, [queryClient]);
 
   const isLoading = mailboxesLoading || emailsLoading;
 
