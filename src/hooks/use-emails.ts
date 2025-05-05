@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -79,18 +78,19 @@ export const useEmails = () => {
         console.log('Fetching conversation for email ID:', selectedEmail);
         
         // Get conversation ID from the selected email
-        const email = emails.find(email => email.id === selectedEmail);
+        const email = data?.emails?.find(email => email.id === selectedEmail);
         if (!email) {
           console.error('Email not found with ID:', selectedEmail);
           throw new Error('Email not found');
         }
         
-        console.log('Using conversation ID for fetch:', email.conversation_id);
+        const conversationId = email.conversation_id;
+        console.log('Using conversation ID for fetch:', conversationId);
         
         // Call the edge function to fetch conversation details
         const { data, error } = await supabase.functions.invoke('fetch-conversation', {
           body: {
-            conversationId: email.conversation_id
+            conversationId
           }
         });
         
@@ -107,7 +107,7 @@ export const useEmails = () => {
         throw error;
       }
     },
-    enabled: !!selectedEmail && !!data?.emails?.length,
+    enabled: !!selectedEmail && !!data?.emails,
     retry: 1, // Limit retries to avoid infinite loops
   });
   

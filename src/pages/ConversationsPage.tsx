@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConversationList } from '@/components/conversations/ConversationList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
@@ -8,24 +8,33 @@ import { useEmails } from '@/hooks/use-emails';
 
 const ConversationsPage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const { allEmails, conversation, conversationLoading, conversationError, setSelectedEmail } = useEmails();
+  const { 
+    allEmails, 
+    conversation, 
+    conversationLoading, 
+    conversationError, 
+    setSelectedEmail 
+  } = useEmails();
 
-  // Find the email corresponding to the selected conversation
-  const selectedEmail = selectedConversationId 
-    ? allEmails.find(email => email.conversation_id === selectedConversationId)?.id || null
-    : null;
+  // Debug logging for emails data
+  useEffect(() => {
+    console.log('ConversationsPage: Available emails:', {
+      count: allEmails?.length || 0,
+      emails: allEmails?.map(e => ({ id: e.id, conversationId: e.conversation_id }))
+    });
+  }, [allEmails]);
 
   const handleSelectConversation = (conversationId: string) => {
     console.log('ConversationsPage: Selected conversation ID:', conversationId);
     setSelectedConversationId(conversationId);
     
     // Find the corresponding email ID and set it as the selected email
-    const emailId = allEmails.find(email => email.conversation_id === conversationId)?.id;
-    if (emailId) {
-      console.log('ConversationsPage: Setting selected email ID:', emailId);
-      setSelectedEmail(emailId);
+    const email = allEmails?.find(email => email.conversation_id === conversationId);
+    if (email) {
+      console.log('ConversationsPage: Setting selected email ID:', email.id);
+      setSelectedEmail(email.id);
     } else {
-      console.log('ConversationsPage: No matching email found for conversation:', conversationId);
+      console.error('ConversationsPage: No matching email found for conversation:', conversationId);
     }
   };
 
@@ -41,13 +50,13 @@ const ConversationsPage = () => {
         <div className="md:col-span-5 h-[calc(100vh-7rem)] overflow-hidden">
           {selectedConversationId ? (
             <ConversationDetail
-              selectedEmail={selectedEmail}
+              selectedEmail={allEmails?.find(email => email.conversation_id === selectedConversationId)?.id || null}
               conversation={conversation}
               isLoading={conversationLoading}
               error={conversationError}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-center p-8">
+            <div className="h-full flex items-center justify-center text-center p-8 bg-white border rounded-md">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">Select a conversation</h2>
                 <p className="text-gray-500">Choose a conversation from the list to view its details</p>
@@ -58,7 +67,7 @@ const ConversationsPage = () => {
         <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">
           {selectedConversationId ? (
             <CustomerInfo
-              selectedEmail={selectedEmail}
+              selectedEmail={allEmails?.find(email => email.conversation_id === selectedConversationId)?.id || null}
               conversation={conversation}
               isLoading={conversationLoading}
               error={conversationError}

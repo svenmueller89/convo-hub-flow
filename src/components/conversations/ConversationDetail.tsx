@@ -7,6 +7,7 @@ import ConversationError from './ConversationError';
 import ConversationHeader from './ConversationHeader';
 import MessageList from './MessageList';
 import ConversationReply from './ConversationReply';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ConversationDetailProps {
   selectedEmail: string | null;
@@ -21,6 +22,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   isLoading, 
   error 
 }) => {
+  const queryClient = useQueryClient();
+  
   useEffect(() => {
     console.log('ConversationDetail received props:', {
       hasSelectedEmail: !!selectedEmail,
@@ -39,6 +42,13 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     }
   }, [selectedEmail, conversation, isLoading, error]);
   
+  const handleRetry = () => {
+    if (selectedEmail) {
+      console.log('Retrying to fetch conversation for email:', selectedEmail);
+      queryClient.invalidateQueries({ queryKey: ['conversation', selectedEmail] });
+    }
+  };
+  
   if (!selectedEmail) {
     return <ConversationEmpty />;
   }
@@ -48,7 +58,11 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   }
   
   if (error || !conversation) {
-    return <ConversationError error={error} selectedEmail={selectedEmail} />;
+    return <ConversationError 
+      error={error} 
+      selectedEmail={selectedEmail} 
+      onRetry={handleRetry}
+    />;
   }
   
   const { email, messages } = conversation;
