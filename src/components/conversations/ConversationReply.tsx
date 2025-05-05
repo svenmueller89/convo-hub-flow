@@ -26,32 +26,34 @@ const ConversationReply: React.FC<ConversationReplyProps> = ({ mode = 'inbox' })
     
     // Extract sender email from the "from" field
     const senderEmail = email.from.match(/<([^>]+)>/)?.[1] || email.from;
+    console.log('Checking customer for email:', senderEmail);
     
     // Check if this is from an existing customer
     const existingCustomer = customers.find(c => 
       c.email?.toLowerCase() === senderEmail.toLowerCase()
     );
     
-    if (!existingCustomer) {
-      // Not a known customer
-      setCustomerStatus('new');
-      return;
-    }
-    
-    // Check if there's an existing conversation for this customer that's in progress
-    const existingConversation = allEmails.some(e => 
-      e.conversation_id === email.conversation_id && 
-      e.id !== email.id && 
-      e.status === 'in-progress'
-    );
-    
-    if (existingConversation) {
-      setCustomerStatus('existing-conversation');
+    if (existingCustomer) {
+      console.log('Found existing customer:', existingCustomer.name);
+      
+      // Check if there's an existing conversation for this customer that's in progress
+      const existingConversation = allEmails.some(e => 
+        e.conversation_id === email.conversation_id && 
+        e.id !== email.id && 
+        e.status === 'in-progress'
+      );
+      
+      if (existingConversation) {
+        console.log('Email belongs to existing conversation:', email.conversation_id);
+        setCustomerStatus('existing-conversation');
+      } else {
+        console.log('Email is from existing customer but needs new conversation');
+        setCustomerStatus('existing-new-conversation');
+      }
     } else {
-      setCustomerStatus('existing-new-conversation');
+      console.log('No matching customer found for email:', senderEmail);
+      setCustomerStatus('new');
     }
-    
-    console.log(`Email status determined: ${customerStatus} for email ${selectedEmail}`);
   }, [selectedEmail, customers, allEmails, getEmailById]);
   
   const handleSetStatus = (status: 'in-progress' | 'resolved') => {

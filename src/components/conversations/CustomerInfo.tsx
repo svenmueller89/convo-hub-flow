@@ -39,7 +39,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
   
   const senderEmail = conversation?.customer?.email || 
                       (conversation?.email?.from && conversation.email.from.match(/<([^>]+)>/)?.[1]) || 
-                      '';
+                      conversation?.email?.from || '';
 
   useEffect(() => {
     if (!senderEmail || customersLoading || !customers) return;
