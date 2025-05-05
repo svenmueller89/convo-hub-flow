@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, ArrowDown, User, MessageCircle, ChevronRight } from 'lucide-react';
+import { Clock, ArrowDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Email } from '@/types/email';
 
@@ -39,20 +39,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ email, customer
             <ArrowDown className="mr-1 h-4 w-4" />
             Assign
           </Button>
-        </div>
-      </div>
-      
-      <div className="flex gap-4 mt-4">
-        <div className="flex items-center text-sm">
-          <User className="h-4 w-4 mr-1 text-gray-500" />
-          <span className="font-medium">Assigned to:</span>
-          <span className="ml-1">John Smith</span>
-        </div>
-        
-        <div className="flex items-center text-sm">
-          <MessageCircle className="h-4 w-4 mr-1 text-gray-500" />
-          <span className="font-medium">Status:</span>
-          <span className="ml-1 capitalize">in progress</span>
         </div>
       </div>
     </div>
