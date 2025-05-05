@@ -1,13 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Mail, Phone, Globe, UserPlus, X, CheckCircle, MailX } from 'lucide-react';
+import { Loader2, Mail, Phone, Globe, UserPlus, X, CheckCircle, MailX, MessageSquarePlus } from 'lucide-react';
 import { EmailSummary, Email, ConversationDetailResponse } from '@/types/email';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomers } from '@/hooks/use-customers';
+import { useEmails } from '@/hooks/use-emails';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CustomerForm } from '@/components/customers/CustomerForm';
@@ -35,8 +37,11 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
     updateCustomer
   } = useCustomers();
   
+  const { allEmails, setEmailStatus } = useEmails();
+  
   const [relatedCustomer, setRelatedCustomer] = useState<any>(null);
   const [customerStatus, setCustomerStatus] = useState<'unknown' | 'related' | 'irrelevant' | 'spam'>('unknown');
+  const [hasActiveConversation, setHasActiveConversation] = useState(false);
   
   const senderEmail = conversation?.customer?.email || 
                       (conversation?.email?.from && conversation.email.from.match(/<([^>]+)>/)?.[1]) || 
@@ -55,12 +60,29 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
       console.log('Found matching customer:', matchedCustomer);
       setRelatedCustomer(matchedCustomer);
       setCustomerStatus('related');
+      
+      // Check if there's an active conversation for this customer
+      if (allEmails && selectedEmail) {
+        const currentEmail = allEmails.find(e => e.id === selectedEmail);
+        if (currentEmail) {
+          const conversationId = currentEmail.conversation_id;
+          
+          // Look for other emails in this conversation that are marked as in-progress
+          const activeEmails = allEmails.filter(e => 
+            e.conversation_id === conversationId && 
+            e.status === 'in-progress' &&
+            e.id !== selectedEmail
+          );
+          
+          setHasActiveConversation(activeEmails.length > 0);
+        }
+      }
     } else {
       console.log('No matching customer found for email:', senderEmail);
       setRelatedCustomer(null);
       setCustomerStatus('unknown');
     }
-  }, [senderEmail, customers, customersLoading]);
+  }, [senderEmail, customers, customersLoading, allEmails, selectedEmail]);
   
   useEffect(() => {
     console.log('CustomerInfo rendering with props:', {
@@ -70,9 +92,10 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
       isLoading,
       error: error ? 'Error: ' + String(error) : 'No error',
       customerInfo: conversation?.customer ? JSON.stringify(conversation.customer).substring(0, 100) : 'No customer data',
-      customerStatus
+      customerStatus,
+      hasActiveConversation
     });
-  }, [selectedEmail, conversation, isLoading, error, customerStatus]);
+  }, [selectedEmail, conversation, isLoading, error, customerStatus, hasActiveConversation]);
   
   const handleMarkAsIrrelevant = () => {
     setCustomerStatus('irrelevant');
@@ -103,6 +126,22 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
         });
       }
     });
+  };
+  
+  const handleStartConversation = () => {
+    if (selectedEmail) {
+      setEmailStatus.mutate(
+        { emailId: selectedEmail, status: 'in-progress' }, 
+        {
+          onSuccess: () => {
+            toast({
+              title: "Conversation started",
+              description: `A new conversation has been started with ${relatedCustomer?.name || 'this customer'}.`
+            });
+          }
+        }
+      );
+    }
   };
   
   if (!selectedEmail || isLoading) {
@@ -248,6 +287,20 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
                 Mark as Spam
               </Button>
             </div>
+          </div>
+        )}
+        
+        {customerStatus === 'related' && !hasActiveConversation && (
+          <div className="flex flex-col gap-2 mt-4">
+            <h4 className="text-sm font-semibold mb-1">Actions</h4>
+            <Button 
+              onClick={handleStartConversation} 
+              variant="default" 
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              <MessageSquarePlus className="h-4 w-4 mr-2" />
+              Start Conversation
+            </Button>
           </div>
         )}
         

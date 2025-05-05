@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { EmailList } from '@/components/conversations/EmailList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 import { useEmails } from '@/hooks/use-emails';
+import { useCustomers } from '@/hooks/use-customers';
 
 const Index = () => {
   const { 
@@ -13,14 +14,33 @@ const Index = () => {
     conversationLoading, 
     emails, 
     conversationError,
-    setSelectedEmail
+    setSelectedEmail,
+    allEmails
   } = useEmails();
+  
+  const { customers } = useCustomers();
   
   // Handle email selection
   const handleEmailSelect = (emailId: string) => {
     console.log(`Index: selecting email ${emailId}`);
     setSelectedEmail(emailId);
   };
+  
+  // Log email processing information
+  useEffect(() => {
+    if (!allEmails || !customers) return;
+    
+    console.log('Email processing stats:', {
+      totalEmails: allEmails.length,
+      newEmails: allEmails.filter(e => e.status === 'new').length,
+      inProgressEmails: allEmails.filter(e => e.status === 'in-progress').length,
+      resolvedEmails: allEmails.filter(e => e.status === 'resolved').length,
+      knownCustomerEmails: allEmails.filter(e => {
+        const emailFrom = e.from.match(/<([^>]+)>/)?.[1] || e.from;
+        return customers.some(c => c.email?.toLowerCase() === emailFrom.toLowerCase());
+      }).length
+    });
+  }, [allEmails, customers]);
   
   return (
     <AppShell>
