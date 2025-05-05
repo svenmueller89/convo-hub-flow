@@ -3,17 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Mail, Phone, Globe, UserPlus, X, CheckCircle, MailX, MessageSquarePlus } from 'lucide-react';
+import { Loader2, Mail, Phone, Globe } from 'lucide-react';
 import { EmailSummary, Email, ConversationDetailResponse } from '@/types/email';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomers } from '@/hooks/use-customers';
-import { useEmails } from '@/hooks/emails/use-emails';
+import { useEmails } from '@/hooks/emails';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CustomerForm } from '@/components/customers/CustomerForm';
-import { Customer, CustomerFormData } from '@/types/customer';
+import { Customer } from '@/types/customer';
 
 interface CustomerInfoProps {
   selectedEmail: string | null;
@@ -29,17 +26,14 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
   error
 }) => {
   const { toast } = useToast();
-  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const { 
     customers, 
-    isLoading: customersLoading, 
-    createCustomer,
-    updateCustomer
+    isLoading: customersLoading
   } = useCustomers();
   
-  const { allEmails, setEmailStatus } = useEmails();
+  const { allEmails } = useEmails();
   
-  const [relatedCustomer, setRelatedCustomer] = useState<any>(null);
+  const [relatedCustomer, setRelatedCustomer] = useState<Customer | null>(null);
   const [customerStatus, setCustomerStatus] = useState<'unknown' | 'related' | 'irrelevant' | 'spam'>('unknown');
   const [hasActiveConversation, setHasActiveConversation] = useState(false);
   
@@ -96,53 +90,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
       hasActiveConversation
     });
   }, [selectedEmail, conversation, isLoading, error, customerStatus, hasActiveConversation]);
-  
-  const handleMarkAsIrrelevant = () => {
-    setCustomerStatus('irrelevant');
-    toast({
-      title: "Marked as irrelevant",
-      description: "This email has been marked as irrelevant and won't be associated with a customer."
-    });
-  };
-  
-  const handleMarkAsSpam = () => {
-    setCustomerStatus('spam');
-    toast({
-      title: "Marked as spam",
-      description: "This email has been marked as spam."
-    });
-  };
-  
-  const handleCreateCustomer = (data: CustomerFormData) => {
-    createCustomer.mutate({
-      ...data,
-      email: senderEmail
-    }, {
-      onSuccess: () => {
-        setCustomerDialogOpen(false);
-        toast({
-          title: "Customer created",
-          description: "A new customer record has been created for this contact."
-        });
-      }
-    });
-  };
-  
-  const handleStartConversation = () => {
-    if (selectedEmail) {
-      setEmailStatus.mutate(
-        { emailId: selectedEmail, status: 'in-progress' }, 
-        {
-          onSuccess: () => {
-            toast({
-              title: "Conversation started",
-              description: `A new conversation has been started with ${relatedCustomer?.name || 'this customer'}.`
-            });
-          }
-        }
-      );
-    }
-  };
   
   if (!selectedEmail || isLoading) {
     return (
@@ -245,64 +192,6 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
             )}
           </div>
         </div>
-        
-        {customerStatus === 'unknown' && (
-          <div className="flex flex-col gap-2 mt-4">
-            <h4 className="text-sm font-semibold mb-1">Actions</h4>
-            <div className="flex gap-2">
-              <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="flex-1" variant="default">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Create Customer
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Customer</DialogTitle>
-                  </DialogHeader>
-                  <CustomerForm 
-                    initialData={{
-                      name: customerName,
-                      email: senderEmail,
-                      company: customerCompany || null,
-                      phone: null,
-                      status: 'active',
-                      notes: null
-                    }}
-                    onSubmit={handleCreateCustomer}
-                    onCancel={() => setCustomerDialogOpen(false)}
-                    isSubmitting={createCustomer.isPending}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1" variant="outline" onClick={handleMarkAsIrrelevant}>
-                <X className="h-4 w-4 mr-2" />
-                Mark Irrelevant
-              </Button>
-              <Button className="flex-1" variant="destructive" onClick={handleMarkAsSpam}>
-                <MailX className="h-4 w-4 mr-2" />
-                Mark as Spam
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {customerStatus === 'related' && !hasActiveConversation && (
-          <div className="flex flex-col gap-2 mt-4">
-            <h4 className="text-sm font-semibold mb-1">Actions</h4>
-            <Button 
-              onClick={handleStartConversation} 
-              variant="default" 
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              <MessageSquarePlus className="h-4 w-4 mr-2" />
-              Start Conversation
-            </Button>
-          </div>
-        )}
         
         <Separator />
         
