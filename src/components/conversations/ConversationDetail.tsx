@@ -70,6 +70,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   
   const { email, messages } = conversation;
   
+  console.log(`ConversationDetail rendering with mode: ${mode}`);
+  
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">
       <ConversationHeader email={email} customer={conversation.customer} />

@@ -42,6 +42,9 @@ const Index = () => {
     });
   }, [allEmails, customers]);
   
+  // Add console log to verify mode is set
+  console.log("Index page rendering ConversationDetail with mode: inbox");
+  
   return (
     <AppShell>
       <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">

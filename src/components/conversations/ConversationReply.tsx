@@ -21,6 +21,8 @@ const ConversationReply: React.FC<ConversationReplyProps> = ({ mode = 'inbox' })
     setEmailStatus.mutate({ emailId: selectedEmail, status });
   };
   
+  console.log("ConversationReply rendering with mode:", mode);
+  
   return (
     <div className="border-t p-4">
       <div className="max-w-3xl mx-auto">
