@@ -4,7 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { EmailList } from '@/components/conversations/EmailList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
-import { useEmails } from '@/hooks/use-emails';
+import { useEmails } from '@/hooks/emails/use-emails';
 import { useCustomers } from '@/hooks/use-customers';
 
 const Index = () => {

@@ -9,7 +9,7 @@ import { Loader2, Mail, Phone, Globe, UserPlus, X, CheckCircle, MailX, MessageSq
 import { EmailSummary, Email, ConversationDetailResponse } from '@/types/email';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomers } from '@/hooks/use-customers';
-import { useEmails } from '@/hooks/use-emails';
+import { useEmails } from '@/hooks/emails/use-emails';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CustomerForm } from '@/components/customers/CustomerForm';
