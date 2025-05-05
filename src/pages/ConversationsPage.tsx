@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConversationList } from '@/components/conversations/ConversationList';
@@ -53,6 +54,7 @@ const ConversationsPage = () => {
               conversation={conversation}
               isLoading={conversationLoading}
               error={conversationError}
+              mode="conversation"
             />
           ) : (
             <div className="h-full flex items-center justify-center text-center p-8 bg-white border rounded-md">

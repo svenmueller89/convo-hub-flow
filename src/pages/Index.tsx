@@ -54,6 +54,7 @@ const Index = () => {
             conversation={conversation} 
             isLoading={conversationLoading}
             error={conversationError}
+            mode="inbox"
           />
         </div>
         <div className="md:col-span-3 h-[calc(100vh-7rem)] overflow-hidden">

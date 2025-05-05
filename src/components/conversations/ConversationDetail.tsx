@@ -14,13 +14,15 @@ interface ConversationDetailProps {
   conversation: ConversationDetailResponse | null;
   isLoading: boolean;
   error: unknown;
+  mode?: 'inbox' | 'conversation';
 }
 
 export const ConversationDetail: React.FC<ConversationDetailProps> = ({ 
   selectedEmail, 
   conversation, 
   isLoading, 
-  error 
+  error,
+  mode = 'inbox'
 }) => {
   const queryClient = useQueryClient();
   
@@ -30,7 +32,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
       selectedEmailId: selectedEmail,
       hasConversation: !!conversation,
       isLoading,
-      error: error ? String(error) : null
+      error: error ? String(error) : null,
+      mode
     });
 
     if (conversation) {
@@ -40,7 +43,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
         customerInfo: conversation.customer
       });
     }
-  }, [selectedEmail, conversation, isLoading, error]);
+  }, [selectedEmail, conversation, isLoading, error, mode]);
   
   const handleRetry = () => {
     if (selectedEmail) {
@@ -71,7 +74,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">
       <ConversationHeader email={email} customer={conversation.customer} />
       <MessageList messages={messages} />
-      <ConversationReply />
+      <ConversationReply mode={mode} />
     </div>
   );
 };
