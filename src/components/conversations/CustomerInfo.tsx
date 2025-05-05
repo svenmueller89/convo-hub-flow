@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
@@ -37,21 +36,46 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
   const [customerStatus, setCustomerStatus] = useState<'unknown' | 'related' | 'irrelevant' | 'spam'>('unknown');
   const [hasActiveConversation, setHasActiveConversation] = useState(false);
   
+  // Improved email extraction
+  const extractEmail = (emailString: string): string => {
+    // Try to extract from angle brackets first
+    const emailMatch = emailString.match(/<([^>]+)>/);
+    if (emailMatch && emailMatch[1]) {
+      return emailMatch[1].trim().toLowerCase();
+    }
+    
+    // If no email in brackets, try to find something that looks like an email
+    const simpleEmailMatch = emailString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (simpleEmailMatch) {
+      return simpleEmailMatch[0].trim().toLowerCase();
+    }
+    
+    // Return the original string as last resort
+    return emailString.trim().toLowerCase();
+  };
+  
   const senderEmail = conversation?.customer?.email || 
-                      (conversation?.email?.from && conversation.email.from.match(/<([^>]+)>/)?.[1]) || 
-                      conversation?.email?.from || '';
+                      (conversation?.email?.from && extractEmail(conversation.email.from)) || 
+                      '';
 
   useEffect(() => {
     if (!senderEmail || customersLoading || !customers) return;
     
-    console.log('Checking if email sender is a known customer:', senderEmail);
+    console.log('CustomerInfo: Checking if email sender is a known customer:', senderEmail);
     
-    const matchedCustomer = customers.find(c => 
-      c.email?.toLowerCase() === senderEmail.toLowerCase()
-    );
+    const matchedCustomer = customers.find(c => {
+      if (!c.email) return false;
+      const customerEmail = c.email.toLowerCase().trim();
+      const emailToCheck = senderEmail.toLowerCase().trim();
+      const isMatch = customerEmail === emailToCheck || 
+                     (conversation?.email?.from && conversation.email.from.toLowerCase().includes(customerEmail));
+      
+      if (isMatch) console.log('CustomerInfo: Found matching customer:', c.name, c.email);
+      return isMatch;
+    });
     
     if (matchedCustomer) {
-      console.log('Found matching customer:', matchedCustomer);
+      console.log('CustomerInfo: Found matching customer:', matchedCustomer);
       setRelatedCustomer(matchedCustomer);
       setCustomerStatus('related');
       
@@ -69,14 +93,15 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
           );
           
           setHasActiveConversation(activeEmails.length > 0);
+          console.log('CustomerInfo: Customer has active conversation:', activeEmails.length > 0);
         }
       }
     } else {
-      console.log('No matching customer found for email:', senderEmail);
+      console.log('CustomerInfo: No matching customer found for email:', senderEmail);
       setRelatedCustomer(null);
       setCustomerStatus('unknown');
     }
-  }, [senderEmail, customers, customersLoading, allEmails, selectedEmail]);
+  }, [senderEmail, customers, customersLoading, allEmails, selectedEmail, conversation]);
   
   useEffect(() => {
     console.log('CustomerInfo rendering with props:', {

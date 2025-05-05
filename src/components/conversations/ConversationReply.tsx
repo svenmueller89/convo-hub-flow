@@ -13,7 +13,7 @@ interface ConversationReplyProps {
 
 const ConversationReply: React.FC<ConversationReplyProps> = ({ mode = 'inbox' }) => {
   const { selectedEmail, setEmailStatus, markAsIrrelevant, markAsSpam, allEmails, getEmailById } = useEmails();
-  const { customers } = useCustomers();
+  const { customers, isLoading: customersLoading } = useCustomers();
   const { toast } = useToast();
   
   const [customerStatus, setCustomerStatus] = useState<'new' | 'existing-new-conversation' | 'existing-conversation'>('new');
@@ -24,17 +24,22 @@ const ConversationReply: React.FC<ConversationReplyProps> = ({ mode = 'inbox' })
     const email = getEmailById(selectedEmail);
     if (!email) return;
     
-    // Extract sender email from the "from" field
-    const senderEmail = email.from.match(/<([^>]+)>/)?.[1] || email.from;
-    console.log('Checking customer for email:', senderEmail);
+    // Extract sender email from the "from" field - improve extraction
+    const senderEmail = email.from.match(/<([^>]+)>/)?.[1] || email.from.split('<')[0].trim();
+    console.log('Checking customer for email:', senderEmail, 'Original from field:', email.from);
     
-    // Check if this is from an existing customer
-    const existingCustomer = customers.find(c => 
-      c.email?.toLowerCase() === senderEmail.toLowerCase()
-    );
+    // Check if this is from an existing customer - improve matching
+    const existingCustomer = customers.find(c => {
+      if (!c.email) return false;
+      const customerEmail = c.email.toLowerCase().trim();
+      const emailToCheck = senderEmail.toLowerCase().trim();
+      const isMatch = customerEmail === emailToCheck || email.from.toLowerCase().includes(customerEmail);
+      if (isMatch) console.log('Customer match found:', c.name, c.email);
+      return isMatch;
+    });
     
     if (existingCustomer) {
-      console.log('Found existing customer:', existingCustomer.name);
+      console.log('Found existing customer:', existingCustomer.name, 'with email:', existingCustomer.email);
       
       // Check if there's an existing conversation for this customer that's in progress
       const existingConversation = allEmails.some(e => 

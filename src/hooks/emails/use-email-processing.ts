@@ -24,13 +24,36 @@ export function useEmailProcessing(
       // Only process new emails (no status set)
       if (email.status !== 'new') return;
       
-      // Extract sender email
-      const senderEmail = email.from.match(/<([^>]+)>/)?.[1] || email.from;
+      // Extract sender email - improved extraction
+      const extractEmail = (emailString: string): string => {
+        // Try to extract from angle brackets first
+        const emailMatch = emailString.match(/<([^>]+)>/);
+        if (emailMatch && emailMatch[1]) {
+          return emailMatch[1].trim().toLowerCase();
+        }
+        
+        // If no email in brackets, try to find something that looks like an email
+        const simpleEmailMatch = emailString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (simpleEmailMatch) {
+          return simpleEmailMatch[0].trim().toLowerCase();
+        }
+        
+        // Return the original string as last resort
+        return emailString.trim().toLowerCase();
+      };
       
-      // Check if this is from an existing customer
-      const existingCustomer = customers.find(c => 
-        c.email?.toLowerCase() === senderEmail.toLowerCase()
-      );
+      const senderEmail = extractEmail(email.from);
+      console.log('Processing email from:', senderEmail, 'Original from field:', email.from);
+      
+      // Check if this is from an existing customer - improved matching
+      const existingCustomer = customers.find(c => {
+        if (!c.email) return false;
+        const customerEmail = c.email.toLowerCase().trim();
+        const emailToCheck = senderEmail.toLowerCase().trim();
+        const isMatch = customerEmail === emailToCheck || email.from.toLowerCase().includes(customerEmail);
+        if (isMatch) console.log('Auto-processing: Customer match found:', c.name, c.email);
+        return isMatch;
+      });
       
       if (existingCustomer) {
         console.log(`Email ${email.id} is from existing customer ${existingCustomer.name}`);
