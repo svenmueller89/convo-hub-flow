@@ -7,6 +7,7 @@ export type Customer = {
   company: string | null;
   status: string;
   notes: string | null;
+  website: string | null;
   created_at: string;
   updated_at: string;
   user_id: string;
