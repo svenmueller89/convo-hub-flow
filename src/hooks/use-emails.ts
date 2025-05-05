@@ -16,7 +16,7 @@ export const useEmails = () => {
   
   // Fetch emails using edge function
   const { 
-    data, 
+    data: emailsData, 
     isLoading: emailsLoading, 
     error: emailsError, 
     refetch: refetchEmails
@@ -77,8 +77,8 @@ export const useEmails = () => {
       try {
         console.log('Fetching conversation for email ID:', selectedEmail);
         
-        // Get conversation ID from the selected email
-        const email = data?.emails?.find(email => email.id === selectedEmail);
+        // Get conversation ID from the selected email - FIX: use emailsData instead of data
+        const email = emailsData?.emails?.find(email => email.id === selectedEmail);
         if (!email) {
           console.error('Email not found with ID:', selectedEmail);
           throw new Error('Email not found');
@@ -107,12 +107,12 @@ export const useEmails = () => {
         throw error;
       }
     },
-    enabled: !!selectedEmail && !!data?.emails,
+    enabled: !!selectedEmail && !!emailsData?.emails,
     retry: 1, // Limit retries to avoid infinite loops
   });
   
   // Filter emails - show only 'new' emails (no status set) in the inbox
-  const emails = (data?.emails || []).filter(email => !email.status || email.status === 'new');
+  const emails = (emailsData?.emails || []).filter(email => !email.status || email.status === 'new');
   const conversation = conversationData || null;
 
   // Debug logging
@@ -127,7 +127,7 @@ export const useEmails = () => {
 
   // Get a single email by ID
   const getEmailById = (emailId: string): EmailSummary | undefined => {
-    return (data?.emails || []).find(email => email.id === emailId);
+    return (emailsData?.emails || []).find(email => email.id === emailId);
   };
 
   // Set status for an email
@@ -161,10 +161,10 @@ export const useEmails = () => {
       const previousData = queryClient.getQueryData(['emails', primaryMailbox?.id]);
       
       // Optimistically update the cache
-      if (data && data.emails) {
+      if (emailsData && emailsData.emails) {
         const optimisticData = {
-          ...data,
-          emails: data.emails.map(email => {
+          ...emailsData,
+          emails: emailsData.emails.map(email => {
             if (email.id === emailId) {
               return { ...email, status };
             }
@@ -283,6 +283,6 @@ export const useEmails = () => {
     conversation,
     conversationLoading,
     conversationError,
-    allEmails: data?.emails || []
+    allEmails: emailsData?.emails || []
   };
 };
