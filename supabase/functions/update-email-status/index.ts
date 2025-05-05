@@ -153,7 +153,7 @@ const handler = async (req: Request) => {
     });
 
     // Parse request data
-    const { emailId, status } = await req.json();
+    const { emailId, status, label } = await req.json();
     
     if (!emailId || !status) {
       return new Response(
@@ -177,6 +177,15 @@ const handler = async (req: Request) => {
     // Update the email status
     console.log(`Updating email ${emailId} status from ${emails[emailIndex].status} to ${status}`);
     emails[emailIndex].status = status as 'new' | 'in-progress' | 'resolved';
+    
+    // Add label if provided
+    if (label) {
+      console.log(`Adding label ${label} to email ${emailId}`);
+      emails[emailIndex].labels = emails[emailIndex].labels || [];
+      if (!emails[emailIndex].labels.includes(label)) {
+        emails[emailIndex].labels.push(label);
+      }
+    }
     
     // Save the updated emails back to storage
     await saveEmails(emails);

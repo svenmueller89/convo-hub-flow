@@ -53,13 +53,8 @@ export interface EmailsResponse {
   unreadCount: number;
 }
 
-export interface ConversationDetailResponse {
-  email: Email;
-  messages: Email[];
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-    company?: string;
-  };
+export interface SetEmailStatusParams {
+  emailId: string;
+  status: 'new' | 'in-progress' | 'resolved';
+  label?: string;
 }

@@ -88,19 +88,33 @@ export function useEmailActions(primaryMailbox: any, emailsData: any) {
   // Mark email as irrelevant
   const markAsIrrelevant = useMutation({
     mutationFn: async (emailId: string) => {
-      // In a real implementation, we would call an API to mark the email as irrelevant
       console.log('Marking email as irrelevant:', emailId);
       
-      // For now, just return success
-      return { success: true };
+      try {
+        // Call the edge function to update email status to 'irrelevant'
+        const { data, error } = await supabase.functions.invoke('update-email-status', {
+          body: { emailId, status: 'resolved', label: 'irrelevant' }
+        });
+        
+        if (error) {
+          console.error('Error marking email as irrelevant:', error);
+          throw error;
+        }
+        
+        console.log('Mark as irrelevant response:', data);
+        return data;
+      } catch (error) {
+        console.error('Error marking email as irrelevant:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Email marked as irrelevant",
-        description: "The email has been marked as irrelevant."
+        description: "The email has been marked as irrelevant and moved out of your inbox."
       });
       
-      // Optionally, we could update the local state or refetch emails
+      // Refetch emails to update the view
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     }
   });
@@ -108,19 +122,33 @@ export function useEmailActions(primaryMailbox: any, emailsData: any) {
   // Mark email as spam
   const markAsSpam = useMutation({
     mutationFn: async (emailId: string) => {
-      // In a real implementation, we would call an API to mark the email as spam
       console.log('Marking email as spam:', emailId);
       
-      // For now, just return success
-      return { success: true };
+      try {
+        // Call the edge function to update email status to 'spam'
+        const { data, error } = await supabase.functions.invoke('update-email-status', {
+          body: { emailId, status: 'resolved', label: 'spam' }
+        });
+        
+        if (error) {
+          console.error('Error marking email as spam:', error);
+          throw error;
+        }
+        
+        console.log('Mark as spam response:', data);
+        return data;
+      } catch (error) {
+        console.error('Error marking email as spam:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Email marked as spam",
-        description: "The email has been marked as spam."
+        description: "The email has been marked as spam and moved out of your inbox."
       });
       
-      // Optionally, we could update the local state or refetch emails
+      // Refetch emails to update the view
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     }
   });
