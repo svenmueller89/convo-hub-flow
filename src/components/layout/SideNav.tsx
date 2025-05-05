@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Inbox, 
@@ -14,10 +14,12 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEmails } from '@/hooks/use-emails';
+import NewConversationDialog from '@/components/conversations/NewConversationDialog';
 
 export const SideNav: React.FC = () => {
   const location = useLocation();
   const { emails } = useEmails();
+  const [newConversationOpen, setNewConversationOpen] = useState(false);
   
   // Count of new emails (inbox)
   const newCount = emails?.length || 0;
@@ -47,6 +49,7 @@ export const SideNav: React.FC = () => {
       <div className="flex-1 px-3 py-4 space-y-1">
         <Button 
           className="w-full justify-start bg-convo-primary hover:bg-convo-primary/90 text-white"
+          onClick={() => setNewConversationOpen(true)}
         >
           <PlusCircle className="mr-2 h-4 w-4" />
           New Conversation
@@ -97,6 +100,12 @@ export const SideNav: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* New Conversation Dialog */}
+      <NewConversationDialog 
+        open={newConversationOpen} 
+        onOpenChange={setNewConversationOpen} 
+      />
     </div>
   );
 };
