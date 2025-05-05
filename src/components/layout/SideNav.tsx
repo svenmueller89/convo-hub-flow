@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useEmails } from '@/hooks/use-emails';
+import { useEmails } from '@/hooks/emails'; // Updated import path
 import NewConversationDialog from '@/components/conversations/NewConversationDialog';
 
 export const SideNav: React.FC = () => {

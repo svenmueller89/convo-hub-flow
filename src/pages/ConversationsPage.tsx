@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConversationList } from '@/components/conversations/ConversationList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
-import { useEmails } from '@/hooks/use-emails';
+import { useEmails } from '@/hooks/emails';
 
 const ConversationsPage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);

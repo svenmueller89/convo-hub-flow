@@ -5,7 +5,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmailSummary } from '@/types/email';
-import { useEmails } from '@/hooks/emails/use-emails';
+import { useEmails } from '@/hooks/emails'; // Updated import path
 import { formatDistanceToNow } from 'date-fns';
 import { Paperclip, ArrowRightCircle, Clock, CheckCircle } from 'lucide-react';
 import { 

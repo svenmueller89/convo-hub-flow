@@ -1,23 +1,27 @@
 
-import { useState, useEffect } from 'react';
 import { useMailboxes } from '@/hooks/use-mailboxes';
-import { useCustomers } from '@/hooks/use-customers';
-import { EmailSummary } from '@/types/email';
 import { useEmailsQuery } from './use-emails-query';
 import { useConversation } from './use-conversation';
 import { useEmailActions } from './use-email-actions';
 import { useEmailSelection } from './use-email-selection';
 import { useEmailProcessing } from './use-email-processing';
+import { useCustomers } from '@/hooks/use-customers';
+import { useState, useEffect } from 'react';
+import { EmailSummary } from '@/types/email';
 import { UseEmailsReturnType } from './types';
 
-export const useEmails = (): UseEmailsReturnType => {
-  const { mailboxes, isLoading: mailboxesLoading, hasPrimaryMailbox } = useMailboxes();
+export function useEmails(): UseEmailsReturnType {
+  // Get primary mailbox info
+  const { 
+    primaryMailbox, 
+    hasPrimaryMailbox,
+    isLoading: mailboxesLoading
+  } = useMailboxes();
+  
+  // Fetch customers for auto-processing
   const { customers, isLoading: customersLoading } = useCustomers();
   
-  // Get the primary mailbox if available
-  const primaryMailbox = mailboxes?.find(mailbox => mailbox.is_primary);
-  
-  // Get email data from query hook
+  // Fetch emails
   const { 
     emailsData, 
     emailsLoading, 
@@ -25,55 +29,56 @@ export const useEmails = (): UseEmailsReturnType => {
     refetchEmails 
   } = useEmailsQuery(primaryMailbox, hasPrimaryMailbox, mailboxesLoading);
   
-  // Handle email selection
+  // Email selection state
   const { selectedEmail, setSelectedEmail } = useEmailSelection();
   
-  // Get conversation data
-  const { 
-    conversation, 
-    conversationLoading, 
-    conversationError 
+  // Fetch conversation details for selected email
+  const {
+    conversation,
+    conversationLoading,
+    conversationError,
+    refetchConversation
   } = useConversation(selectedEmail, emailsData);
   
-  // Get email action mutations
-  const { 
-    setEmailStatus, 
-    markAsIrrelevant, 
-    markAsSpam 
+  // Email actions
+  const {
+    setEmailStatus,
+    markAsIrrelevant,
+    markAsSpam
   } = useEmailActions(primaryMailbox, emailsData);
   
-  // Process emails automatically
+  // Filter emails by status
+  const [allEmails, setAllEmails] = useState<EmailSummary[]>([]);
+  
+  // Update emails when data changes
+  useEffect(() => {
+    if (emailsData?.emails) {
+      setAllEmails(emailsData.emails);
+    }
+  }, [emailsData]);
+  
+  // For status="new" filtering
+  const emails = allEmails.filter(email => 
+    email.status === 'new'
+  );
+  
+  // Auto-process emails based on rules
   useEmailProcessing(
-    emailsData?.emails, 
-    customers, 
-    emailsLoading, 
-    customersLoading, 
+    allEmails,
+    customers,
+    emailsLoading,
+    customersLoading,
     setEmailStatus
   );
   
-  // Debug logging
-  useEffect(() => {
-    console.log('useEmails state:', { 
-      selectedEmail, 
-      conversation: !!conversation,
-      conversationLoading,
-      emailsCount: emailsData?.emails?.length || 0
-    });
-  }, [selectedEmail, conversation, conversationLoading, emailsData?.emails?.length]);
-  
-  // Filter emails - show only 'new' emails (no status set) in the inbox
-  const emails = (emailsData?.emails || []).filter(email => !email.status || email.status === 'new');
-
-  // Get a single email by ID
-  const getEmailById = (emailId: string): EmailSummary | undefined => {
-    return (emailsData?.emails || []).find(email => email.id === emailId);
+  // Helper to get email by ID
+  const getEmailById = (emailId: string) => {
+    return allEmails.find(email => email.id === emailId);
   };
-
-  const isLoading = mailboxesLoading || emailsLoading;
-
+  
   return {
     emails,
-    isLoading,
+    isLoading: emailsLoading || mailboxesLoading,
     error: emailsError,
     refetch: refetchEmails,
     selectedEmail,
@@ -85,6 +90,6 @@ export const useEmails = (): UseEmailsReturnType => {
     conversation,
     conversationLoading,
     conversationError,
-    allEmails: emailsData?.emails || []
+    allEmails
   };
-};
+}

@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, X, AlertTriangle } from 'lucide-react';
-import { useEmails } from '@/hooks/emails/use-emails';
+import { useEmails } from '@/hooks/emails'; // Updated import path
 import { useToast } from '@/hooks/use-toast';
 
 const ConversationReply: React.FC = () => {
