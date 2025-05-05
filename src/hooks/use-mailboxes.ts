@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +30,9 @@ export const useMailboxes = () => {
     },
     enabled: !!user,
   });
+
+  // Extract the primary mailbox from the list
+  const primaryMailbox = mailboxes?.find(mailbox => mailbox.is_primary);
 
   const addMailbox = useMutation({
     mutationFn: async (formData: MailboxFormData) => {
@@ -195,6 +197,7 @@ export const useMailboxes = () => {
 
   return {
     mailboxes,
+    primaryMailbox, // Add primaryMailbox to the return object
     isLoading,
     error,
     addMailbox,
