@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Customers from "./pages/Customers";
 import ConversationsPage from "./pages/ConversationsPage";
 import Setup from "./pages/Setup";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Customers />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } 
             />
