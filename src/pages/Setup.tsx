@@ -20,15 +20,30 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { WorkspaceSetup } from '@/components/onboarding/WorkspaceSetup';
+import { useWorkspaces } from '@/hooks/use-workspaces';
 
 const SetupPage: React.FC = () => {
   const { user } = useAuth();
-  const { mailboxes, isLoading, addMailbox, deleteMailbox, setPrimaryMailbox, hasPrimaryMailbox } = useMailboxes();
+  const { mailboxes, isLoading: isLoadingMailboxes, addMailbox, deleteMailbox, setPrimaryMailbox, hasPrimaryMailbox } = useMailboxes();
+  const { workspaces, isLoading: isLoadingWorkspaces, hasWorkspaces } = useWorkspaces();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [setupStep, setSetupStep] = useState<'workspace' | 'mailbox'>('workspace');
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Determine which setup step to show based on if user has workspaces
+  useEffect(() => {
+    if (!isLoadingWorkspaces) {
+      if (hasWorkspaces()) {
+        setSetupStep('mailbox');
+      } else {
+        setSetupStep('workspace');
+      }
+    }
+  }, [isLoadingWorkspaces, hasWorkspaces]);
 
   // Autofill user's email initially
   useEffect(() => {
@@ -59,6 +74,14 @@ const SetupPage: React.FC = () => {
     }
   };
 
+  const handleWorkspaceComplete = () => {
+    setSetupStep('mailbox');
+  };
+
+  const handleWorkspaceSkip = () => {
+    setSetupStep('mailbox');
+  };
+
   const handleSkip = () => {
     toast({
       title: "Setup skipped",
@@ -77,11 +100,20 @@ const SetupPage: React.FC = () => {
       return;
     }
     
-    navigate('/');
-    toast({
-      title: "Setup completed",
-      description: "Your mailboxes have been configured successfully."
-    });
+    // If user has workspaces, navigate to the first workspace dashboard
+    if (workspaces && workspaces.length > 0) {
+      navigate(`/workspaces/${workspaces[0].id}/dashboard`);
+      toast({
+        title: "Setup completed",
+        description: "Your workspace and mailboxes have been configured successfully."
+      });
+    } else {
+      navigate('/');
+      toast({
+        title: "Setup completed",
+        description: "Your mailboxes have been configured successfully."
+      });
+    }
   };
 
   const renderMailboxList = () => {
@@ -148,7 +180,7 @@ const SetupPage: React.FC = () => {
     );
   };
 
-  if (isLoading) {
+  if (isLoadingMailboxes || isLoadingWorkspaces) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900" />
@@ -165,90 +197,99 @@ const SetupPage: React.FC = () => {
             <span className="ml-2 text-2xl font-bold text-gray-800">ConvoHub</span>
           </div>
           <h2 className="text-lg font-medium text-gray-600">
-            Setup your mailboxes
+            {setupStep === 'workspace' 
+              ? "Set up your workspace" 
+              : "Set up your mailboxes"}
           </h2>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Connect Mailboxes</CardTitle>
-            <CardDescription>
-              Add one or more mailboxes to receive and manage your customer conversations.
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {renderMailboxList()}
+        {setupStep === 'workspace' ? (
+          <WorkspaceSetup
+            onComplete={handleWorkspaceComplete}
+            onSkip={handleWorkspaceSkip}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Connect Mailboxes</CardTitle>
+              <CardDescription>
+                Add one or more mailboxes to receive and manage your customer conversations.
+              </CardDescription>
+            </CardHeader>
             
-            <div className="border-t pt-4">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="w-full">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Mailbox
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Add New Mailbox</SheetTitle>
-                    <SheetDescription>
-                      Connect a mailbox to receive and respond to customer messages.
-                    </SheetDescription>
-                  </SheetHeader>
-                  
-                  <form onSubmit={handleAddMailbox} className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        required
-                      />
-                    </div>
+            <CardContent className="space-y-6">
+              {renderMailboxList()}
+              
+              <div className="border-t pt-4">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Mailbox
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <SheetHeader>
+                      <SheetTitle>Add New Mailbox</SheetTitle>
+                      <SheetDescription>
+                        Connect a mailbox to receive and respond to customer messages.
+                      </SheetDescription>
+                    </SheetHeader>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName">Display Name (Optional)</Label>
-                      <Input
-                        id="displayName"
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Support Team"
-                      />
-                    </div>
-                    
-                    <SheetFooter>
-                      <SheetClose asChild>
-                        <Button type="button" variant="outline">Cancel</Button>
-                      </SheetClose>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? 'Adding...' : 'Add Mailbox'}
-                      </Button>
-                    </SheetFooter>
-                  </form>
-                </SheetContent>
-              </Sheet>
-            </div>
+                    <form onSubmit={handleAddMailbox} className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="displayName">Display Name (Optional)</Label>
+                        <Input
+                          id="displayName"
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="Support Team"
+                        />
+                      </div>
+                      
+                      <SheetFooter>
+                        <SheetClose asChild>
+                          <Button type="button" variant="outline">Cancel</Button>
+                        </SheetClose>
+                        <Button type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? 'Adding...' : 'Add Mailbox'}
+                        </Button>
+                      </SheetFooter>
+                    </form>
+                  </SheetContent>
+                </Sheet>
+              </div>
+              
+              {!hasPrimaryMailbox() && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No primary mailbox</AlertTitle>
+                  <AlertDescription>
+                    You need to add at least one mailbox and set it as primary before proceeding.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
             
-            {!hasPrimaryMailbox() && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No primary mailbox</AlertTitle>
-                <AlertDescription>
-                  You need to add at least one mailbox and set it as primary before proceeding.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-          
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleSkip}>Skip for now</Button>
-            <Button onClick={handleComplete} disabled={!hasPrimaryMailbox()}>Continue</Button>
-          </CardFooter>
-        </Card>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleSkip}>Skip for now</Button>
+              <Button onClick={handleComplete} disabled={!hasPrimaryMailbox()}>Continue</Button>
+            </CardFooter>
+          </Card>
+        )}
       </div>
     </div>
   );

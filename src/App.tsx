@@ -13,6 +13,7 @@ import Customers from "./pages/Customers";
 import ConversationsPage from "./pages/ConversationsPage";
 import Setup from "./pages/Setup";
 import Settings from "./pages/Settings";
+import WorkspaceDashboard from "./pages/WorkspaceDashboard";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,14 @@ const App = () => (
                   <Settings />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/workspaces/:workspaceId/dashboard"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceDashboard />
+                </ProtectedRoute>
+              }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
