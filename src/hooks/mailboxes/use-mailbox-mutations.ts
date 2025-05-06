@@ -14,7 +14,7 @@ export const useMailboxMutations = (): UseMailboxMutations => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  const addMailbox = useMutation({
+  const addMailboxMutation = useMutation({
     mutationFn: async (formData: MailboxFormData) => {
       if (!user) throw new Error('User not authenticated');
       
@@ -66,7 +66,7 @@ export const useMailboxMutations = (): UseMailboxMutations => {
     }
   });
 
-  const updateMailbox = useMutation({
+  const updateMailboxMutation = useMutation({
     mutationFn: async ({ id, formData }: { id: string, formData: Partial<MailboxFormData> }) => {
       if (!user) throw new Error('User not authenticated');
       
@@ -112,7 +112,7 @@ export const useMailboxMutations = (): UseMailboxMutations => {
     }
   });
 
-  const deleteMailbox = useMutation({
+  const deleteMailboxMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user) throw new Error('User not authenticated');
       
@@ -142,7 +142,7 @@ export const useMailboxMutations = (): UseMailboxMutations => {
     }
   });
 
-  const setPrimaryMailbox = useMutation({
+  const setPrimaryMailboxMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user) throw new Error('User not authenticated');
       
@@ -186,10 +186,27 @@ export const useMailboxMutations = (): UseMailboxMutations => {
     }
   });
 
+  // Properly map the mutation objects to match the required interface
   return {
-    addMailbox,
-    updateMailbox,
-    deleteMailbox,
-    setPrimaryMailbox
+    addMailbox: {
+      mutate: addMailboxMutation.mutate,
+      mutateAsync: addMailboxMutation.mutateAsync,
+      isLoading: addMailboxMutation.isPending
+    },
+    updateMailbox: {
+      mutate: updateMailboxMutation.mutate,
+      mutateAsync: updateMailboxMutation.mutateAsync,
+      isLoading: updateMailboxMutation.isPending
+    },
+    deleteMailbox: {
+      mutate: deleteMailboxMutation.mutate,
+      mutateAsync: deleteMailboxMutation.mutateAsync,
+      isLoading: deleteMailboxMutation.isPending
+    },
+    setPrimaryMailbox: {
+      mutate: setPrimaryMailboxMutation.mutate,
+      mutateAsync: setPrimaryMailboxMutation.mutateAsync,
+      isLoading: setPrimaryMailboxMutation.isPending
+    }
   };
 };
