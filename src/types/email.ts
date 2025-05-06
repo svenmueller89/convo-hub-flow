@@ -1,4 +1,3 @@
-
 export interface EmailAttachment {
   id: string;
   filename: string;
@@ -22,6 +21,7 @@ export interface Email {
   date: string;
   labels?: string[];
   attachments?: EmailAttachment[];
+  status?: 'new' | 'in-progress' | 'resolved'; // Added status property
 }
 
 export interface EmailSummary {

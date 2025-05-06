@@ -75,13 +75,14 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   
   const { email, messages } = conversation;
   
-  // Get the current status of this conversation
+  // Get the current status of this conversation - handle case when email.status is undefined
+  const emailStatus = email?.status || 'new'; // Default to 'new' if status is undefined
   const currentStatus = statuses.find(
-    s => s.name.toLowerCase() === email?.status
+    s => s.name.toLowerCase() === emailStatus.toLowerCase()
   ) || {
     id: '0',
-    name: email?.status ? (email.status.charAt(0).toUpperCase() + email.status.slice(1)) : 'Open',
-    color: email?.status === 'in-progress' ? '#3B82F6' : email?.status === 'resolved' ? '#10B981' : '#6B7280',
+    name: emailStatus.charAt(0).toUpperCase() + emailStatus.slice(1),
+    color: emailStatus === 'in-progress' ? '#3B82F6' : emailStatus === 'resolved' ? '#10B981' : '#6B7280',
     is_default: false,
     display_order: 0,
     created_at: '',
