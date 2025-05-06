@@ -45,7 +45,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
       console.log('Conversation details:', {
         emailSubject: conversation.email?.subject,
         messagesCount: conversation.messages?.length,
-        customerInfo: conversation.customer
+        customerInfo: conversation.customer,
+        status: conversation.email?.status
       });
     }
   }, [selectedEmail, conversation, isLoading, error, mode]);
@@ -91,14 +92,19 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
 
   const handleStatusChange = async (statusId: string) => {
     if (email) {
+      console.log(`Changing status for conversation ${email.conversation_id} to ${statusId}`);
       await updateConversationStatus.mutateAsync({
         conversationId: email.conversation_id,
         statusId
       });
+      
+      // Force refresh both the conversations list and the current conversation
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation', selectedEmail] });
     }
   };
   
-  console.log(`ConversationDetail rendering with mode: ${mode}`);
+  console.log(`ConversationDetail rendering with mode: ${mode} and status: ${emailStatus}`);
   
   return (
     <div className="bg-white border rounded-md overflow-hidden h-full flex flex-col">

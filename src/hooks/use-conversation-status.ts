@@ -33,8 +33,9 @@ export const useConversationStatus = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch queries to update UI
+      // Invalidate and refetch ALL relevant queries to ensure synchronization
       queryClient.invalidateQueries({ queryKey: ['emails'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation'] });
     },
     onError: (error) => {
       toast({

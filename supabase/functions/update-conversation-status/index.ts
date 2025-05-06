@@ -52,8 +52,9 @@ const handler = async (req: Request) => {
       );
     }
     
-    // In a real app, we would update conversation status in the database
-    // For now, we'll update the status in the email update endpoint
+    console.log(`Updating conversation ${conversationId} to status: ${statusData.name}`);
+    
+    // Update the status in the email update endpoint
     const { data, error } = await supabase.functions.invoke('update-email-status', {
       body: { 
         emailId: null,
