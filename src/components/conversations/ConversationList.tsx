@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { Search, Filter, ArrowUpDown, Paperclip } from 'lucide-react';
 import { useConversations } from '@/hooks/use-conversations';
+import { StatusDropdown } from './StatusDropdown';
+import { useConversationStatuses } from '@/hooks/use-conversation-statuses';
+import { useConversationStatus } from '@/hooks/use-conversation-status';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,25 +19,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const statusClasses: Record<string, { color: string; label: string }> = {
-  'new': { color: 'bg-convo-warning text-white', label: 'New' },
-  'in-progress': { color: 'bg-convo-primary text-white', label: 'In Progress' },
-  'resolved': { color: 'bg-convo-success text-white', label: 'Resolved' },
-};
-
 interface ConversationItemProps {
   id: string;
+  conversation_id: string;
   from: string;
   subject: string;
   preview: string;
   date: string;
-  status: 'new' | 'in-progress' | 'resolved';
+  status: string;
   selected?: boolean;
   hasAttachments: boolean;
   onClick: () => void;
 }
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
+  id,
+  conversation_id,
   from,
   subject,
   preview,
@@ -44,7 +44,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   hasAttachments,
   onClick,
 }) => {
-  const statusClass = statusClasses[status];
+  const { statuses = [] } = useConversationStatuses();
+  const { updateConversationStatus } = useConversationStatus();
+  
   const fromName = from.split('<')[0].trim();
   const initials = fromName
     .split(' ')
@@ -54,6 +56,23 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     .toUpperCase();
   
   const formattedDate = formatDistanceToNow(new Date(date), { addSuffix: true });
+  
+  const currentStatus = statuses.find(s => s.name.toLowerCase() === status) || {
+    id: '0',
+    name: status.charAt(0).toUpperCase() + status.slice(1),
+    color: status === 'in-progress' ? '#3B82F6' : status === 'resolved' ? '#10B981' : '#6B7280',
+    is_default: false,
+    display_order: 0,
+    created_at: '',
+    updated_at: ''
+  };
+
+  const handleStatusChange = async (statusId: string) => {
+    await updateConversationStatus.mutateAsync({
+      conversationId: conversation_id,
+      statusId
+    });
+  };
   
   return (
     <div 
@@ -84,9 +103,12 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               {hasAttachments && (
                 <Paperclip className="h-3 w-3 text-gray-400" />
               )}
-              <Badge className={cn("text-xs", statusClass.color)}>
-                {statusClass.label}
-              </Badge>
+              <StatusDropdown 
+                currentStatus={currentStatus}
+                allStatuses={statuses}
+                onChangeStatus={handleStatusChange}
+                className="ml-2"
+              />
             </div>
           </div>
         </div>
@@ -205,6 +227,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             <ConversationItem
               key={conversation.id}
               id={conversation.id}
+              conversation_id={conversation.conversation_id}
               from={conversation.from}
               subject={conversation.subject}
               preview={conversation.preview}

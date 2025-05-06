@@ -153,11 +153,11 @@ const handler = async (req: Request) => {
     });
 
     // Parse request data
-    const { emailId, status, label } = await req.json();
+    const { emailId, conversationId, status, label } = await req.json();
     
-    if (!emailId || !status) {
+    if ((!emailId && !conversationId) || !status) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: emailId or status' }),
+        JSON.stringify({ error: 'Missing required parameters: either emailId or conversationId must be provided along with status' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
@@ -165,25 +165,64 @@ const handler = async (req: Request) => {
     // Get emails from storage
     let emails = await getStoredEmails();
     
-    // Find and update the email
-    const emailIndex = emails.findIndex(email => email.id === emailId);
-    if (emailIndex === -1) {
-      return new Response(
-        JSON.stringify({ error: `Email with ID ${emailId} not found` }),
-        { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      );
+    // Find and update the email(s)
+    let updated = false;
+    
+    if (emailId) {
+      // Update by email ID
+      const emailIndex = emails.findIndex(email => email.id === emailId);
+      if (emailIndex === -1) {
+        return new Response(
+          JSON.stringify({ error: `Email with ID ${emailId} not found` }),
+          { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      
+      // Update the email status
+      console.log(`Updating email ${emailId} status from ${emails[emailIndex].status} to ${status}`);
+      emails[emailIndex].status = status as 'new' | 'in-progress' | 'resolved';
+      updated = true;
+    } else if (conversationId) {
+      // Update by conversation ID - update all emails in the conversation
+      let foundConversation = false;
+      
+      for (let i = 0; i < emails.length; i++) {
+        if (emails[i].conversation_id === conversationId) {
+          console.log(`Updating email ${emails[i].id} in conversation ${conversationId} status from ${emails[i].status} to ${status}`);
+          emails[i].status = status as 'new' | 'in-progress' | 'resolved';
+          foundConversation = true;
+          updated = true;
+        }
+      }
+      
+      if (!foundConversation) {
+        return new Response(
+          JSON.stringify({ error: `Conversation with ID ${conversationId} not found` }),
+          { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
     }
     
-    // Update the email status
-    console.log(`Updating email ${emailId} status from ${emails[emailIndex].status} to ${status}`);
-    emails[emailIndex].status = status as 'new' | 'in-progress' | 'resolved';
-    
     // Add label if provided
-    if (label) {
-      console.log(`Adding label ${label} to email ${emailId}`);
-      emails[emailIndex].labels = emails[emailIndex].labels || [];
-      if (!emails[emailIndex].labels.includes(label)) {
-        emails[emailIndex].labels.push(label);
+    if (label && updated) {
+      console.log(`Adding label ${label} to updated email(s)`);
+      if (emailId) {
+        const email = emails.find(email => email.id === emailId);
+        if (email) {
+          email.labels = email.labels || [];
+          if (!email.labels.includes(label)) {
+            email.labels.push(label);
+          }
+        }
+      } else if (conversationId) {
+        emails.forEach(email => {
+          if (email.conversation_id === conversationId) {
+            email.labels = email.labels || [];
+            if (!email.labels.includes(label)) {
+              email.labels.push(label);
+            }
+          }
+        });
       }
     }
     

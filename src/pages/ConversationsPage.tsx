@@ -5,9 +5,11 @@ import { ConversationList } from '@/components/conversations/ConversationList';
 import { ConversationDetail } from '@/components/conversations/ConversationDetail';
 import { CustomerInfo } from '@/components/conversations/CustomerInfo';
 import { useEmails } from '@/hooks/emails';
+import { useConversationStatuses } from '@/hooks/use-conversation-statuses';
 
 const ConversationsPage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const { statuses } = useConversationStatuses();
   const { 
     allEmails, 
     conversation, 
@@ -15,6 +17,12 @@ const ConversationsPage = () => {
     conversationError, 
     setSelectedEmail 
   } = useEmails();
+
+  // Prefetch conversation statuses
+  useEffect(() => {
+    // This is just to ensure statuses are loaded
+    console.log('Prefetching conversation statuses:', statuses?.length || 0);
+  }, [statuses]);
 
   // Debug logging for emails data
   useEffect(() => {
