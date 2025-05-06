@@ -1,61 +1,85 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useMailboxes } from '@/hooks/use-mailboxes';
 import { Button } from '@/components/ui/button';
-import { Mail, Plus, Star, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Mail, Plus, Search } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Mailbox, MailboxFormData } from '@/types/mailbox';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import MailboxCard from './MailboxCard';
+import MailboxForm from './MailboxForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MailboxSettings: React.FC = () => {
-  const { mailboxes, isLoading, addMailbox, deleteMailbox, setPrimaryMailbox, hasPrimaryMailbox } = useMailboxes();
-  const [email, setEmail] = React.useState('');
-  const [displayName, setDisplayName] = React.useState('');
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { toast } = useToast();
+  const { 
+    mailboxes, 
+    isLoading, 
+    addMailbox, 
+    deleteMailbox, 
+    updateMailbox,
+    setPrimaryMailbox, 
+    hasPrimaryMailbox 
+  } = useMailboxes();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentMailbox, setCurrentMailbox] = useState<Mailbox | null>(null);
 
-  const handleAddMailbox = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      await addMailbox.mutateAsync({
-        email,
-        display_name: displayName || null,
-        is_primary: !hasPrimaryMailbox()
-      });
-      
-      // Reset form
-      setEmail('');
-      setDisplayName('');
-      
-      toast({
-        title: "Mailbox added",
-        description: "Your mailbox has been added successfully."
-      });
-    } catch (error) {
-      console.error("Failed to add mailbox:", error);
-      toast({
-        title: "Failed to add mailbox",
-        description: "There was an error adding your mailbox. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
+  const handleAddMailbox = async (formData: MailboxFormData) => {
+    await addMailbox.mutateAsync(formData);
+    setIsAddDialogOpen(false);
+  };
+
+  const handleEditMailbox = async (formData: MailboxFormData) => {
+    if (!currentMailbox) return;
+    await updateMailbox.mutateAsync({ id: currentMailbox.id, formData });
+    setIsEditDialogOpen(false);
+  };
+
+  const handleOpenEditDialog = (mailbox: Mailbox) => {
+    setCurrentMailbox(mailbox);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (id: string) => {
+    const mailbox = mailboxes?.find(m => m.id === id);
+    if (mailbox) {
+      setCurrentMailbox(mailbox);
+      setIsDeleteDialogOpen(true);
     }
   };
+
+  const handleConfirmDelete = async () => {
+    if (currentMailbox) {
+      await deleteMailbox.mutateAsync(currentMailbox.id);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const filteredMailboxes = mailboxes?.filter(mailbox => {
+    return mailbox.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           (mailbox.display_name && mailbox.display_name.toLowerCase().includes(searchTerm.toLowerCase()));
+  });
 
   if (isLoading) {
     return <div className="flex justify-center py-8">
@@ -65,166 +89,51 @@ const MailboxSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Your Mailboxes</h3>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Mailbox
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Add New Mailbox</SheetTitle>
-              <SheetDescription>
-                Connect a mailbox to receive and respond to customer messages.
-              </SheetDescription>
-            </SheetHeader>
-            
-            <form onSubmit={handleAddMailbox} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name (Optional)</Label>
-                <Input
-                  id="displayName"
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Support Team"
-                />
-              </div>
-              
-              <SheetFooter>
-                <SheetClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
-                </SheetClose>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Adding...' : 'Add Mailbox'}
-                </Button>
-              </SheetFooter>
-            </form>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {mailboxes && mailboxes.length > 0 ? (
-        <div className="space-y-3 mt-4">
-          {mailboxes.map((mailbox) => (
-            <div 
-              key={mailbox.id}
-              className="flex items-center justify-between p-3 border rounded-md bg-white"
-            >
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-convo-secondary flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-convo-primary" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-medium">{mailbox.display_name || mailbox.email}</p>
-                  <p className="text-sm text-gray-500">{mailbox.email}</p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                {!mailbox.is_primary && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setPrimaryMailbox.mutate(mailbox.id)}
-                    title="Set as primary mailbox"
-                  >
-                    <Star className="h-4 w-4" />
-                  </Button>
-                )}
-                {mailbox.is_primary && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-amber-500 cursor-default"
-                    title="Primary mailbox"
-                  >
-                    <Star className="h-4 w-4 fill-amber-500" />
-                  </Button>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => deleteMailbox.mutate(mailbox.id)}
-                  disabled={mailbox.is_primary}
-                  title={mailbox.is_primary ? "Cannot delete primary mailbox" : "Delete mailbox"}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-medium">Your Mailboxes</h3>
+          <p className="text-sm text-gray-500">Connect your email accounts to receive and send messages</p>
         </div>
+        
+        <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Mailbox
+        </Button>
+      </div>
+      
+      {mailboxes && mailboxes.length > 0 ? (
+        <>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input 
+              placeholder="Search mailboxes..." 
+              className="pl-10" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-3 mt-4">
+            {filteredMailboxes?.map((mailbox) => (
+              <MailboxCard 
+                key={mailbox.id} 
+                mailbox={mailbox}
+                onDelete={handleOpenDeleteDialog}
+                onEdit={handleOpenEditDialog}
+                onSetPrimary={(id) => setPrimaryMailbox.mutate(id)}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
           <Mail className="h-12 w-12 text-gray-300 mb-4" />
           <p className="text-gray-500">No mailboxes connected yet</p>
           <p className="text-gray-400 text-sm mb-4">Add your first mailbox to get started with customer conversations</p>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Mailbox
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              {/* Same sheet content as above */}
-              <SheetHeader>
-                <SheetTitle>Add New Mailbox</SheetTitle>
-                <SheetDescription>
-                  Connect a mailbox to receive and respond to customer messages.
-                </SheetDescription>
-              </SheetHeader>
-              
-              <form onSubmit={handleAddMailbox} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email2">Email Address</Label>
-                  <Input
-                    id="email2"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="displayName2">Display Name (Optional)</Label>
-                  <Input
-                    id="displayName2"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Support Team"
-                  />
-                </div>
-                
-                <SheetFooter>
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
-                  </SheetClose>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Adding...' : 'Add Mailbox'}
-                  </Button>
-                </SheetFooter>
-              </form>
-            </SheetContent>
-          </Sheet>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Your First Mailbox
+          </Button>
         </div>
       )}
 
@@ -237,6 +146,61 @@ const MailboxSettings: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Add Mailbox Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add New Mailbox</DialogTitle>
+            <DialogDescription>
+              Connect a mailbox to receive and respond to customer messages.
+            </DialogDescription>
+          </DialogHeader>
+          <MailboxForm 
+            onSubmit={handleAddMailbox} 
+            onCancel={() => setIsAddDialogOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Mailbox Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Mailbox</DialogTitle>
+            <DialogDescription>
+              Update your mailbox connection settings.
+            </DialogDescription>
+          </DialogHeader>
+          {currentMailbox && (
+            <MailboxForm 
+              initialData={currentMailbox}
+              onSubmit={handleEditMailbox} 
+              onCancel={() => setIsEditDialogOpen(false)}
+              isEditing 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove mailbox?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disconnect '{currentMailbox?.display_name || currentMailbox?.email}'?
+              All fetched emails will remain in ConvoHub, but no new emails will be pulled.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Remove Mailbox
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

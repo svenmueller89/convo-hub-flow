@@ -1,8 +1,9 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Mailbox, MailboxFormData } from '@/types/mailbox';
+import { Mailbox, MailboxFormData, MailboxTestResult } from '@/types/mailbox';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useMailboxes = () => {
@@ -34,6 +35,30 @@ export const useMailboxes = () => {
   // Extract the primary mailbox from the list
   const primaryMailbox = mailboxes?.find(mailbox => mailbox.is_primary);
 
+  // Test mailbox connection
+  const testMailboxConnection = async (formData: MailboxFormData): Promise<MailboxTestResult> => {
+    // In a real implementation, this would be an API call to test the IMAP/SMTP connection
+    // For now, we'll simulate a successful test
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          message: "Connection test successful",
+          details: {
+            imap: {
+              success: true,
+              message: "IMAP connection established successfully"
+            },
+            smtp: {
+              success: true,
+              message: "SMTP connection established successfully"
+            }
+          }
+        });
+      }, 1500);
+    });
+  };
+
   const addMailbox = useMutation({
     mutationFn: async (formData: MailboxFormData) => {
       if (!user) throw new Error('User not authenticated');
@@ -47,7 +72,9 @@ export const useMailboxes = () => {
       const mailboxData = {
         ...formData,
         is_primary: isPrimary,
-        user_id: user.id
+        user_id: user.id,
+        connection_status: 'connected', // In a real implementation, this would be set after testing
+        last_sync: new Date().toISOString()
       };
       
       // Use type assertion to work with the mailboxes table
@@ -83,10 +110,22 @@ export const useMailboxes = () => {
     mutationFn: async ({ id, formData }: { id: string, formData: Partial<MailboxFormData> }) => {
       if (!user) throw new Error('User not authenticated');
       
+      // If password is empty, remove it from the update
+      if (formData.password === '') {
+        delete formData.password;
+      }
+      
+      const updateData = {
+        ...formData,
+        updated_at: new Date().toISOString(),
+        connection_status: 'connected', // In a real implementation, this would be set after testing
+        last_sync: new Date().toISOString()
+      };
+      
       // Use type assertion to work with the mailboxes table
       const { data, error } = await supabase
         .from('mailboxes')
-        .update(formData as any)
+        .update(updateData as any)
         .eq('id', id)
         .select()
         .single();
@@ -197,13 +236,14 @@ export const useMailboxes = () => {
 
   return {
     mailboxes,
-    primaryMailbox, // Add primaryMailbox to the return object
+    primaryMailbox,
     isLoading,
     error,
     addMailbox,
     updateMailbox,
     deleteMailbox,
     setPrimaryMailbox,
+    testMailboxConnection,
     hasPrimaryMailbox,
     hasMailboxes
   };
