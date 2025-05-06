@@ -11,7 +11,9 @@ export const useWorkspaces = () => {
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ['workspaces'],
     queryFn: async (): Promise<Workspace[]> => {
-      const { data, error } = await supabase
+      // We need to use 'from' with any type assertion since the generated types don't include
+      // the workspaces table yet (will be updated after a Supabase types reload)
+      const { data, error } = await (supabase as any)
         .from('workspaces')
         .select('*')
         .order('created_at', { ascending: false });
@@ -25,8 +27,8 @@ export const useWorkspaces = () => {
     mutationFn: async (params: CreateWorkspaceParams): Promise<Workspace> => {
       const { name, description } = params;
       
-      // Insert new workspace
-      const { data, error } = await supabase
+      // Insert new workspace using any type assertion
+      const { data, error } = await (supabase as any)
         .from('workspaces')
         .insert([{ name, description }])
         .select()
@@ -52,7 +54,8 @@ export const useWorkspaces = () => {
   });
 
   const getWorkspace = async (id: string): Promise<Workspace | null> => {
-    const { data, error } = await supabase
+    // Use any type assertion here too
+    const { data, error } = await (supabase as any)
       .from('workspaces')
       .select('*')
       .eq('id', id)
