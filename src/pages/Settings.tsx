@@ -4,11 +4,12 @@ import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, Mail, Palette, User } from 'lucide-react';
+import { Bell, Mail, Palette, User, Users } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import MailboxSettings from '@/components/settings/MailboxSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
+import TeamSettings from '@/components/settings/TeamSettings';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -17,6 +18,10 @@ const Settings: React.FC = () => {
   if (!user) {
     return null;
   }
+
+  // For now we assume all users are admins for demonstration purposes
+  // In a real implementation, we'd check the user's role from the user object
+  const isAdmin = true;
 
   return (
     <AppShell>
@@ -27,7 +32,7 @@ const Settings: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" /> Profile
             </TabsTrigger>
@@ -40,6 +45,11 @@ const Settings: React.FC = () => {
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" /> Appearance
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="team" className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> Team
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile">
@@ -89,6 +99,20 @@ const Settings: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="team">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Team Management</CardTitle>
+                  <CardDescription>Manage your team and workspace access</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TeamSettings />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppShell>
