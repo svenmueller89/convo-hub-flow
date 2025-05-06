@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,21 +48,6 @@ export const useConversations = () => {
     },
     staleTime: 0, // Set staleTime to 0 to ensure we always get fresh data
   });
-
-  // Listen for query invalidations and refetch when needed
-  useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe(() => {
-      const isQueryInvalidated = queryClient.getQueryState(['emails'])?.isInvalidated;
-      if (isQueryInvalidated) {
-        console.log('Emails query invalidated, refetching');
-        refetchEmails();
-      }
-    });
-    
-    return () => {
-      unsubscribe();
-    };
-  }, [queryClient, refetchEmails]);
 
   // Process and filter conversations - only include emails with a status (not 'new')
   const conversations = useMemo(() => {

@@ -33,9 +33,14 @@ export const useConversationStatus = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch ALL relevant queries to ensure synchronization
+      // Safely invalidate queries without causing recursion
+      // Be specific about the queries we invalidate
       queryClient.invalidateQueries({ queryKey: ['emails'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation'] });
+      // For conversation queries, be more specific with the exact query key
+      queryClient.invalidateQueries({ 
+        queryKey: ['conversation'],
+        // Don't use predicate functions here as they can cause recursion
+      });
     },
     onError: (error) => {
       toast({

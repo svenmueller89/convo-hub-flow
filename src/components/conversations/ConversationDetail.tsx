@@ -98,9 +98,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
         statusId
       });
       
-      // Force refresh both the conversations list and the current conversation
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation', selectedEmail] });
+      // Instead of manually invalidating queries, rely on the onSuccess callback in the mutation
     }
   };
   
