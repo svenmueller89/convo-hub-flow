@@ -29,7 +29,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const { statuses = [] } = useConversationStatuses();
-  const { updateConversationStatus } = useConversationStatus();
+  const { updateConversationStatus, isUpdating } = useConversationStatus();
   
   useEffect(() => {
     console.log('ConversationDetail received props:', {
@@ -98,7 +98,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
         statusId
       });
       
-      // Instead of manually invalidating queries, rely on the onSuccess callback in the mutation
+      // The onSuccess callback in the mutation will handle query invalidation
     }
   };
   
@@ -111,6 +111,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
           currentStatus={currentStatus}
           allStatuses={statuses}
           onChangeStatus={handleStatusChange}
+          disabled={isUpdating}
         />
       </div>
       <ConversationHeader email={email} customer={conversation.customer} />

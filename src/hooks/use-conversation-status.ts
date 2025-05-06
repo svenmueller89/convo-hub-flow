@@ -19,8 +19,7 @@ export const useConversationStatus = () => {
       setIsUpdating(true);
       
       try {
-        // In a real app, we would update the status in a database
-        // Here we're using the conversation_id to match with emails
+        console.log(`Updating status for conversation ID: ${conversationId} to status ID: ${statusId}`);
         const { data, error } = await supabase.functions.invoke('update-conversation-status', {
           body: { conversationId, statusId }
         });
@@ -33,13 +32,17 @@ export const useConversationStatus = () => {
       }
     },
     onSuccess: () => {
-      // Safely invalidate queries without causing recursion
-      // Be specific about the queries we invalidate
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      // For conversation queries, be more specific with the exact query key
+      // Force a refresh of both email queries and conversation queries
+      // without causing recursion issues
       queryClient.invalidateQueries({ 
+        queryKey: ['emails'],
+        refetchType: 'all'
+      });
+      
+      // Invalidate all conversation queries to make sure details are refreshed
+      queryClient.invalidateQueries({
         queryKey: ['conversation'],
-        // Don't use predicate functions here as they can cause recursion
+        refetchType: 'all'
       });
     },
     onError: (error) => {

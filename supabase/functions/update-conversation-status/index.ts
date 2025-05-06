@@ -55,7 +55,7 @@ const handler = async (req: Request) => {
     console.log(`Updating conversation ${conversationId} to status: ${statusData.name}`);
     
     // Update the status in the email update endpoint
-    const { data, error } = await supabase.functions.invoke('update-email-status', {
+    const response = await supabase.functions.invoke('update-email-status', {
       body: { 
         emailId: null,
         conversationId: conversationId,
@@ -63,17 +63,21 @@ const handler = async (req: Request) => {
       }
     });
     
-    if (error) {
+    if (response.error) {
+      console.error('Error from update-email-status:', response.error);
       return new Response(
-        JSON.stringify({ error: `Failed to update status: ${error.message}` }),
+        JSON.stringify({ error: `Failed to update status: ${response.error.message}` }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
     
+    // Force a delay to ensure the status is updated before the client refreshes
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: data,
+        data: response.data,
         message: `Conversation status updated successfully to ${statusData.name}` 
       }),
       { headers: { 'Content-Type': 'application/json', ...corsHeaders } }

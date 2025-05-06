@@ -22,7 +22,7 @@ export interface Email {
   date: string;
   labels?: string[];
   attachments?: EmailAttachment[];
-  status?: 'new' | 'in-progress' | 'resolved'; // Explicitly defined status property
+  status: 'new' | 'in-progress' | 'resolved'; // Make status required, not optional
 }
 
 export interface EmailSummary {

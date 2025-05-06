@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EmailSummary } from '@/types/email';
@@ -9,7 +9,6 @@ type SortOption = 'newest' | 'oldest';
 
 export const useConversations = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<ConversationFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [search, setSearch] = useState('');
@@ -46,7 +45,9 @@ export const useConversations = () => {
         throw error;
       }
     },
-    staleTime: 0, // Set staleTime to 0 to ensure we always get fresh data
+    // Set a relatively short staleTime to ensure data is refreshed frequently
+    staleTime: 1000 * 10, // 10 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Process and filter conversations - only include emails with a status (not 'new')
