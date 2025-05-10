@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useMailboxes } from '@/hooks/use-mailboxes';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTitle } from '@/components/ui/alert'; // Add this import for AlertTitle
+import { AlertTitle } from '@/components/onboarding/AlertTitle'; // Fix the import path
 import { MailboxForm } from './MailboxForm';
 import { MailboxList } from './MailboxList';
 
