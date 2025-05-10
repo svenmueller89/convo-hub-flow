@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Workspace, CreateWorkspaceParams } from '@/types/workspace';
 import { useToast } from './use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useWorkspaces = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the current authenticated user
 
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ['workspaces'],
@@ -25,12 +27,18 @@ export const useWorkspaces = () => {
 
   const createWorkspace = useMutation({
     mutationFn: async (params: CreateWorkspaceParams): Promise<Workspace> => {
+      if (!user) throw new Error("You must be logged in to create a workspace");
+      
       const { name, description } = params;
       
-      // Insert new workspace using any type assertion
+      // Insert new workspace using any type assertion and explicitly set user_id
       const { data, error } = await (supabase as any)
         .from('workspaces')
-        .insert([{ name, description }])
+        .insert([{ 
+          name, 
+          description, 
+          user_id: user.id // Explicitly set the user_id to the current user's ID
+        }])
         .select()
         .single();
       

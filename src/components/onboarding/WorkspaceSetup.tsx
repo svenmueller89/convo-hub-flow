@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkspaceSetupProps {
   onComplete: () => void;
@@ -22,6 +23,7 @@ export const WorkspaceSetup: React.FC<WorkspaceSetupProps> = ({ onComplete, onSk
   const [descError, setDescError] = useState('');
   const { createWorkspace } = useWorkspaces();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the current authenticated user
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -49,6 +51,15 @@ export const WorkspaceSetup: React.FC<WorkspaceSetupProps> = ({ onComplete, onSk
   };
 
   const handleCreateWorkspace = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to create a workspace.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!validateForm()) return;
     
     try {
@@ -76,6 +87,7 @@ export const WorkspaceSetup: React.FC<WorkspaceSetupProps> = ({ onComplete, onSk
         {createWorkspace.error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>
               Could not create workspace: {createWorkspace.error.message || 'Unknown error'}
             </AlertDescription>

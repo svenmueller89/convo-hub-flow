@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { useMailboxes } from '@/hooks/use-mailboxes';
 import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTitle } from '@/components/onboarding/AlertTitle'; // Fix the import path
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MailboxForm } from './MailboxForm';
 import { MailboxList } from './MailboxList';
 
