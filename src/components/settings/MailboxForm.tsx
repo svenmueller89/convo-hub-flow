@@ -30,7 +30,7 @@ const mailboxSchema = z.object({
   smtp_port: z.coerce.number().int().min(1).max(65535),
   smtp_encryption: z.enum(['SSL/TLS', 'STARTTLS', 'None']),
   username: z.string().min(1, { message: "Username is required" }),
-  password: z.string().min(1, { message: "Password is required" }),
+  password: z.string().optional(),
 });
 
 interface MailboxFormProps {
@@ -67,6 +67,25 @@ const MailboxForm: React.FC<MailboxFormProps> = ({
       password: '',
     }
   });
+
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      form.reset({
+        email: initialData.email || '',
+        display_name: initialData.display_name || '',
+        is_primary: initialData.is_primary || false,
+        imap_host: initialData.imap_host || '',
+        imap_port: initialData.imap_port || 993,
+        imap_encryption: (initialData.imap_encryption as any) || 'SSL/TLS',
+        smtp_host: initialData.smtp_host || '',
+        smtp_port: initialData.smtp_port || 587,
+        smtp_encryption: (initialData.smtp_encryption as any) || 'SSL/TLS',
+        username: initialData.username || '',
+        password: '',
+      });
+    }
+  }, [initialData, form]);
 
   const handleTestConnection = async () => {
     const formData = form.getValues();

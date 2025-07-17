@@ -148,8 +148,12 @@ const MailboxSettings: React.FC = () => {
       )}
 
       {/* Add Mailbox Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} modal>
+        <DialogContent 
+          className="sm:max-w-3xl"
+          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Add New Mailbox</DialogTitle>
             <DialogDescription>
@@ -164,8 +168,12 @@ const MailboxSettings: React.FC = () => {
       </Dialog>
 
       {/* Edit Mailbox Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} modal>
+        <DialogContent 
+          className="sm:max-w-3xl"
+          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Edit Mailbox</DialogTitle>
             <DialogDescription>
@@ -174,6 +182,7 @@ const MailboxSettings: React.FC = () => {
           </DialogHeader>
           {currentMailbox && (
             <MailboxForm 
+              key={currentMailbox.id} // Force re-render when mailbox changes
               initialData={currentMailbox}
               onSubmit={handleEditMailbox} 
               onCancel={() => setIsEditDialogOpen(false)}

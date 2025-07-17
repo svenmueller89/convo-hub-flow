@@ -126,31 +126,64 @@ export type Database = {
       }
       mailboxes: {
         Row: {
+          connection_status: string | null
           created_at: string
           display_name: string | null
           email: string
+          error_message: string | null
           id: string
+          imap_encryption: string | null
+          imap_host: string | null
+          imap_port: number | null
           is_primary: boolean | null
+          last_sync: string | null
+          password: string | null
+          smtp_encryption: string | null
+          smtp_host: string | null
+          smtp_port: number | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
+          connection_status?: string | null
           created_at?: string
           display_name?: string | null
           email: string
+          error_message?: string | null
           id?: string
+          imap_encryption?: string | null
+          imap_host?: string | null
+          imap_port?: number | null
           is_primary?: boolean | null
+          last_sync?: string | null
+          password?: string | null
+          smtp_encryption?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
+          connection_status?: string | null
           created_at?: string
           display_name?: string | null
           email?: string
+          error_message?: string | null
           id?: string
+          imap_encryption?: string | null
+          imap_host?: string | null
+          imap_port?: number | null
           is_primary?: boolean | null
+          last_sync?: string | null
+          password?: string | null
+          smtp_encryption?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
