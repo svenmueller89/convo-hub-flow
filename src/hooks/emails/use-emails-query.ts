@@ -48,6 +48,7 @@ export function useEmailsQuery(primaryMailbox: any, hasPrimaryMailbox: () => boo
     },
     enabled: !mailboxesLoading && hasPrimaryMailbox(),
     staleTime: 0, // Disable staleTime to ensure we always get fresh data
+    refetchOnMount: true, // Refetch on component mount
   });
   
   return {
