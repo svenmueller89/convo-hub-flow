@@ -74,8 +74,12 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
+      // Get the current domain (should work for both localhost and deployed)
+      const currentDomain = window.location.origin;
+      console.log('Sending reset email with redirect to:', `${currentDomain}/auth`);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${currentDomain}/auth`,
       });
       
       if (error) {
