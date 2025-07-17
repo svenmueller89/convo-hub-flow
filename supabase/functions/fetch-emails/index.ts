@@ -2,6 +2,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { EmailSummary, EmailsResponse } from '../_shared/types.ts';
+import Imap from 'npm:imap@0.8.19';
+import { simpleParser } from 'npm:mailparser@3.7.1';
 
 interface MailboxConfig {
   id: string;
@@ -13,70 +15,136 @@ interface MailboxConfig {
   password: string;
 }
 
-// Simple IMAP-like email fetcher
+// Real IMAP email fetcher
 async function fetchEmailsFromImap(config: MailboxConfig): Promise<EmailSummary[]> {
-  console.log(`Fetching emails from IMAP server: ${config.imap_host}:${config.imap_port}`);
+  console.log(`Connecting to IMAP server: ${config.imap_host}:${config.imap_port}`);
   
-  try {
-    // For demonstration, we'll simulate connecting to the IMAP server
-    // In a real implementation, you would:
-    // 1. Connect to the IMAP server using TLS/SSL
-    // 2. Authenticate with username/password
-    // 3. Select the INBOX folder
-    // 4. Fetch email headers and parse them
-    // 5. Return formatted email data
-    
-    // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // For now, return sample emails with some real-looking data
-    // These would be replaced with actual emails from the IMAP server
-    const realEmails: EmailSummary[] = [
-      {
-        id: `real_${Date.now()}_1`,
-        conversation_id: `conv_${Date.now()}_1`,
-        from: `Real Email <${config.email}>`,
-        subject: `Test Email from ${config.imap_host}`,
-        preview: `This is a real email fetched from your IMAP server ${config.imap_host}. Connection successful!`,
-        date: new Date().toISOString(),
-        read: false,
-        starred: false,
-        status: "new",
-        has_attachments: false,
-      },
-      {
-        id: `real_${Date.now()}_2`,
-        conversation_id: `conv_${Date.now()}_2`,
-        from: `Support <support@${config.imap_host.split('.').slice(-2).join('.')}>`,
-        subject: "Welcome to your email account",
-        preview: "Thank you for setting up your email account. You can now receive emails through our system.",
-        date: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        read: false,
-        starred: false,
-        status: "new",
-        has_attachments: false,
-      },
-      {
-        id: `real_${Date.now()}_3`,
-        conversation_id: `conv_${Date.now()}_3`,
-        from: `System <noreply@${config.imap_host.split('.').slice(-2).join('.')}>`,
-        subject: "Email account configured successfully",
-        preview: "Your email account has been successfully configured and is now receiving emails.",
-        date: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        read: true,
-        starred: false,
-        status: "resolved",
-        has_attachments: false,
-      }
-    ];
-    
-    console.log(`Successfully fetched ${realEmails.length} emails from IMAP`);
-    return realEmails;
-    
-  } catch (error) {
-    console.error(`Failed to fetch emails from IMAP: ${error.message}`);
-    throw new Error(`IMAP fetch failed: ${error.message}`);
-  }
+  return new Promise((resolve, reject) => {
+    const imap = new Imap({
+      user: config.username,
+      password: config.password,
+      host: config.imap_host,
+      port: config.imap_port,
+      tls: config.imap_encryption === 'SSL/TLS',
+      tlsOptions: { rejectUnauthorized: false }, // Accept self-signed certificates
+      authTimeout: 30000,
+      connTimeout: 60000,
+      keepalive: false
+    });
+
+    const emails: EmailSummary[] = [];
+
+    function openInbox(cb: (error: Error | null, box?: any) => void) {
+      imap.openBox('INBOX', true, cb);
+    }
+
+    imap.once('ready', function() {
+      console.log('IMAP connection ready');
+      openInbox(function(err, box) {
+        if (err) {
+          console.error('Error opening inbox:', err);
+          reject(err);
+          return;
+        }
+
+        console.log(`Inbox opened, ${box.messages.total} total messages`);
+
+        // Fetch last 20 emails
+        const fetch = imap.seq.fetch(`${Math.max(1, box.messages.total - 19)}:*`, {
+          bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)',
+          struct: true
+        });
+
+        fetch.on('message', function(msg: any, seqno: number) {
+          console.log(`Processing message #${seqno}`);
+          let headers = '';
+          
+          msg.on('body', function(stream: any, info: any) {
+            stream.on('data', function(chunk: any) {
+              headers += chunk.toString('ascii');
+            });
+          });
+
+          msg.once('attributes', function(attrs: any) {
+            const uid = attrs.uid;
+            const flags = attrs.flags || [];
+            const isRead = flags.includes('\\Seen');
+            
+            // Parse headers when we have them
+            msg.once('end', function() {
+              try {
+                const headerLines = headers.split('\r\n');
+                const parsedHeaders: { [key: string]: string } = {};
+                
+                headerLines.forEach(line => {
+                  const colonIndex = line.indexOf(':');
+                  if (colonIndex > 0) {
+                    const key = line.substring(0, colonIndex).toLowerCase().trim();
+                    const value = line.substring(colonIndex + 1).trim();
+                    parsedHeaders[key] = value;
+                  }
+                });
+
+                const from = parsedHeaders.from || 'Unknown Sender';
+                const subject = parsedHeaders.subject || 'No Subject';
+                const date = parsedHeaders.date || new Date().toISOString();
+                const messageId = parsedHeaders['message-id'] || `${uid}@${config.imap_host}`;
+
+                // Create preview from subject or use default
+                const preview = subject.length > 100 ? 
+                  subject.substring(0, 100) + '...' : 
+                  `Email from ${from.replace(/<.*>/, '').trim()}`;
+
+                const email: EmailSummary = {
+                  id: `${config.id}_${uid}`,
+                  conversation_id: `conv_${config.id}_${uid}`,
+                  from: from,
+                  subject: subject,
+                  preview: preview,
+                  date: new Date(date).toISOString(),
+                  read: isRead,
+                  starred: false,
+                  status: isRead ? 'resolved' : 'new',
+                  has_attachments: false // TODO: Detect attachments from structure
+                };
+
+                emails.push(email);
+                console.log(`Parsed email: ${subject} from ${from}`);
+              } catch (error) {
+                console.error('Error parsing email headers:', error);
+              }
+            });
+          });
+        });
+
+        fetch.once('error', function(err: Error) {
+          console.error('Fetch error:', err);
+          reject(err);
+        });
+
+        fetch.once('end', function() {
+          console.log(`Finished fetching ${emails.length} emails`);
+          imap.end();
+          
+          // Sort emails by date (newest first)
+          emails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          resolve(emails);
+        });
+      });
+    });
+
+    imap.once('error', function(err: Error) {
+      console.error('IMAP connection error:', err);
+      reject(err);
+    });
+
+    imap.once('end', function() {
+      console.log('IMAP connection ended');
+    });
+
+    console.log('Connecting to IMAP...');
+    imap.connect();
+  });
 }
 
 // In-memory storage as a fallback

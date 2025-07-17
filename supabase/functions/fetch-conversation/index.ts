@@ -209,6 +209,23 @@ const handler = async (req: Request) => {
   try {
     console.log('Fetch conversation function called');
     
+    // Get JWT token from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header provided' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Create Supabase client with the user's JWT token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://fmcymhdtudjohlabpvob.supabase.co';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+    
     // Parse request data
     const { conversationId } = await req.json();
 
@@ -222,8 +239,70 @@ const handler = async (req: Request) => {
       );
     }
 
-    // In a real implementation, we would fetch conversation from an email service
-    // For now, we'll use mock data
+    // Check if this looks like a real email ID (contains mailbox_uid format)
+    if (conversationId.includes('_')) {
+      console.log('This appears to be a real email, trying to fetch real content');
+      
+      try {
+        // Try to get real email content
+        const { data: realContent, error: realError } = await supabase.functions.invoke('fetch-email-content', {
+          body: { emailId: conversationId }
+        });
+        
+        if (!realError && realContent) {
+          console.log('Successfully fetched real email content');
+          
+          // Transform the real email content to match the expected format
+          const transformedResponse: ConversationDetailResponse = {
+            email: {
+              id: conversationId,
+              mailbox_id: conversationId.split('_')[0],
+              conversation_id: conversationId,
+              from: realContent.messages[0]?.from || 'Unknown Sender',
+              to: [realContent.messages[0]?.to || ''],
+              subject: realContent.subject,
+              body: realContent.messages[0]?.content || '',
+              read: false,
+              starred: false,
+              date: realContent.messages[0]?.date || new Date().toISOString(),
+              attachments: realContent.messages[0]?.attachments || []
+            },
+            messages: realContent.messages.map((msg: any) => ({
+              id: msg.id,
+              mailbox_id: conversationId.split('_')[0],
+              conversation_id: conversationId,
+              from: msg.from,
+              to: Array.isArray(msg.to) ? msg.to : [msg.to],
+              subject: msg.subject,
+              body: msg.content,
+              read: false,
+              starred: false,
+              date: msg.date,
+              attachments: msg.attachments || []
+            })),
+            customer: {
+              id: `real-customer-${conversationId}`,
+              name: realContent.messages[0]?.from?.split('<')[0]?.trim() || 'Unknown Customer',
+              email: realContent.messages[0]?.from?.split('<')[1]?.replace('>', '') || '',
+              company: ''
+            }
+          };
+          
+          return new Response(
+            JSON.stringify(transformedResponse),
+            { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        } else {
+          console.log('Real email fetch failed, falling back to mock data:', realError);
+        }
+      } catch (error) {
+        console.log('Error fetching real email content, falling back to mock data:', error);
+      }
+    }
+
+    
+    // Fallback to mock data for demo emails
+    console.log('Using mock conversation data');
     const conversationMessages = mockEmails[conversationId];
     
     if (!conversationMessages || conversationMessages.length === 0) {
@@ -233,8 +312,6 @@ const handler = async (req: Request) => {
         { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
-
-    // Get the main email (first in the conversation)
     const email = conversationMessages[0];
     
     // Get customer information

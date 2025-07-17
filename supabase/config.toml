@@ -44,6 +44,9 @@ enable_signup = true
 [functions.fetch-conversation]
 verify_jwt = true
 
+[functions.fetch-email-content]
+verify_jwt = true
+
 [functions.fetch-emails]
 verify_jwt = true
 
