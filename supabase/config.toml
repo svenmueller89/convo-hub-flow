@@ -35,16 +35,32 @@ enabled = false
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "https://796dd99a-3ea0-4c7e-af8f-5ceb1e2c6528.lovableproject.com"
+additional_redirect_urls = ["https://localhost:3000"]
 
 [auth.email]
-enabled = false
+enable_signup = true
 
-[auth.sms]
-enabled = false
+[functions.fetch-conversation]
+verify_jwt = true
 
-[auth.external.github]
-enabled = false
-client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
-secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
-redirect_uri = "http://localhost:54321/auth/v1/callback"
+[functions.fetch-emails]
+verify_jwt = true
+
+[functions.fetch-imap-emails]
+verify_jwt = true
+
+[functions.mark-as-read]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.test-mailbox-connection]
+verify_jwt = true
+
+[functions.update-conversation-status]
+verify_jwt = true
+
+[functions.update-email-status]
+verify_jwt = true

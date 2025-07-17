@@ -155,7 +155,71 @@ const handler = async (req: Request) => {
     // Parse request data
     const { mailboxId, page = 1, limit = 10, status, label, search, markAsReadId } = await req.json();
     
-    // Get emails from storage
+    // If a mailbox is configured with IMAP settings, try to fetch real emails
+    let targetMailboxId = mailboxId;
+    if (!targetMailboxId) {
+      const { data: primaryMailbox, error: mailboxError } = await supabase
+        .from('mailboxes')
+        .select('*')
+        .eq('is_primary', true)
+        .single();
+
+      if (mailboxError || !primaryMailbox) {
+        return new Response(
+          JSON.stringify({ error: 'No primary mailbox found' }),
+          { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+
+      targetMailboxId = primaryMailbox.id;
+      
+      // Check if this mailbox has IMAP configuration
+      if (primaryMailbox.imap_host && primaryMailbox.username && primaryMailbox.password) {
+        console.log(`Primary mailbox has IMAP config, delegating to fetch-imap-emails`);
+        
+        // Call the IMAP-specific function
+        const imapResponse = await supabase.functions.invoke('fetch-imap-emails', {
+          body: { mailboxId: targetMailboxId, page, limit, status, label, search }
+        });
+        
+        if (imapResponse.error) {
+          console.error('IMAP fetch failed, falling back to mock data:', imapResponse.error);
+        } else {
+          return new Response(
+            JSON.stringify(imapResponse.data),
+            { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+      }
+    } else {
+      // Check specific mailbox for IMAP config
+      const { data: specificMailbox, error: mbError } = await supabase
+        .from('mailboxes')
+        .select('*')
+        .eq('id', targetMailboxId)
+        .single();
+        
+      if (!mbError && specificMailbox?.imap_host && specificMailbox.username && specificMailbox.password) {
+        console.log(`Mailbox ${targetMailboxId} has IMAP config, delegating to fetch-imap-emails`);
+        
+        const imapResponse = await supabase.functions.invoke('fetch-imap-emails', {
+          body: { mailboxId: targetMailboxId, page, limit, status, label, search }
+        });
+        
+        if (imapResponse.error) {
+          console.error('IMAP fetch failed, falling back to mock data:', imapResponse.error);
+        } else {
+          return new Response(
+            JSON.stringify(imapResponse.data),
+            { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+      }
+    }
+
+    
+    // Fallback to mock emails if IMAP is not configured or failed
+    console.log("Using mock email data as fallback");
     let mockEmails = await getStoredEmails();
     
     // Handle marking email as read if markAsReadId is provided
@@ -172,27 +236,6 @@ const handler = async (req: Request) => {
         console.log(`Email with ID ${markAsReadId} not found`);
       }
     }
-
-    // Fetch primary mailbox if no mailboxId is provided
-    let userMailboxId = mailboxId;
-    if (!userMailboxId) {
-      const { data: mailboxes, error: mailboxError } = await supabase
-        .from('mailboxes')
-        .select('id')
-        .eq('is_primary', true)
-        .single();
-
-      if (mailboxError || !mailboxes) {
-        return new Response(
-          JSON.stringify({ error: 'No primary mailbox found' }),
-          { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-        );
-      }
-
-      userMailboxId = mailboxes.id;
-    }
-
-    // Filter emails based on request parameters
     let filteredEmails = [...mockEmails];
     
     if (status) {

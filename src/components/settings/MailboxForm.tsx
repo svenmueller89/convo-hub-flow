@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { MailboxFormData, Mailbox, MailboxTestResult } from '@/types/mailbox';
 import { useToast } from '@/hooks/use-toast';
+import { useMailboxes } from '@/hooks/use-mailboxes';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -50,6 +51,7 @@ const MailboxForm: React.FC<MailboxFormProps> = ({
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<MailboxTestResult | null>(null);
   const { toast } = useToast();
+  const { testMailboxConnection } = useMailboxes();
   
   const form = useForm<MailboxFormData>({
     resolver: zodResolver(mailboxSchema),
@@ -104,46 +106,30 @@ const MailboxForm: React.FC<MailboxFormProps> = ({
     setTestResult(null);
     
     try {
-      // In a real implementation, this would be an API call to test the connection
-      // For now, we'll simulate a successful test
-      setTimeout(() => {
-        const testResult: MailboxTestResult = {
-          success: true,
-          message: "Connection test successful",
-          details: {
-            imap: {
-              success: true,
-              message: "IMAP connection established successfully"
-            },
-            smtp: {
-              success: true,
-              message: "SMTP connection established successfully"
-            }
-          }
-        };
-        
-        setTestResult(testResult);
-        toast({
-          title: "Connection test complete",
-          description: testResult.success 
-            ? "IMAP & SMTP connected successfully." 
-            : testResult.message,
-          variant: testResult.success ? "default" : "destructive"
-        });
-        
-        setIsTesting(false);
-      }, 1500);
+      const result = await testMailboxConnection(formData);
+      
+      setTestResult(result);
+      toast({
+        title: "Connection test complete",
+        description: result.success 
+          ? "IMAP & SMTP connected successfully." 
+          : result.message,
+        variant: result.success ? "default" : "destructive"
+      });
+      
     } catch (error) {
       console.error("Connection test failed:", error);
-      setTestResult({
+      const errorResult: MailboxTestResult = {
         success: false,
         message: "Connection test failed"
-      });
+      };
+      setTestResult(errorResult);
       toast({
         title: "Connection test failed",
         description: "There was an error testing the connection. Please check your settings and try again.",
         variant: "destructive"
       });
+    } finally {
       setIsTesting(false);
     }
   };

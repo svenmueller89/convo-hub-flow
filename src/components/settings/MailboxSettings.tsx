@@ -153,6 +153,8 @@ const MailboxSettings: React.FC = () => {
           className="sm:max-w-3xl"
           onInteractOutside={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Add New Mailbox</DialogTitle>
@@ -173,6 +175,8 @@ const MailboxSettings: React.FC = () => {
           className="sm:max-w-3xl"
           onInteractOutside={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Edit Mailbox</DialogTitle>
