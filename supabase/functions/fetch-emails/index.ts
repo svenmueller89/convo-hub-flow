@@ -24,20 +24,26 @@ class SimpleIMAPClient {
   async connect(): Promise<void> {
     console.log(`Connecting to ${this.config.imap_host}:${this.config.imap_port}`);
     
-    if (this.config.imap_encryption === 'SSL/TLS') {
-      this.conn = await Deno.connectTls({
-        hostname: this.config.imap_host,
-        port: this.config.imap_port,
-      });
-    } else {
-      this.conn = await Deno.connect({
-        hostname: this.config.imap_host,
-        port: this.config.imap_port,
-      });
-    }
+    try {
+      if (this.config.imap_encryption === 'SSL/TLS') {
+        this.conn = await Deno.connectTls({
+          hostname: this.config.imap_host,
+          port: this.config.imap_port,
+        });
+      } else {
+        this.conn = await Deno.connect({
+          hostname: this.config.imap_host,
+          port: this.config.imap_port,
+        });
+      }
 
-    // Read initial greeting
-    await this.readResponse();
+      // Read initial greeting with timeout
+      await this.readResponseWithTimeout(10000); // 10 second timeout for greeting
+      console.log('Successfully connected to IMAP server');
+    } catch (error) {
+      console.error('Failed to connect to IMAP server:', error);
+      throw new Error(`IMAP connection failed: ${error.message}`);
+    }
   }
 
   async authenticate(): Promise<void> {
@@ -150,27 +156,49 @@ class SimpleIMAPClient {
   }
 
   private async readResponse(): Promise<string> {
+    return this.readResponseWithTimeout(15000); // 15 second default timeout
+  }
+
+  private async readResponseWithTimeout(timeoutMs: number): Promise<string> {
     if (!this.conn) throw new Error('Not connected');
     
-    let response = '';
-    const decoder = new TextDecoder();
-    const buffer = new Uint8Array(4096);
-    
-    while (true) {
-      const bytesRead = await this.conn.read(buffer);
-      if (bytesRead === null) break;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`IMAP response timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      let response = '';
+      const decoder = new TextDecoder();
+      const buffer = new Uint8Array(4096);
       
-      const chunk = decoder.decode(buffer.subarray(0, bytesRead));
-      response += chunk;
+      const readLoop = async () => {
+        try {
+          while (true) {
+            const bytesRead = await this.conn!.read(buffer);
+            if (bytesRead === null) break;
+            
+            const chunk = decoder.decode(buffer.subarray(0, bytesRead));
+            response += chunk;
+            
+            // Check if we have a complete response
+            if (response.includes('A001 OK') || response.includes('A001 NO') || response.includes('A001 BAD') || 
+                response.includes('* OK')) {
+              clearTimeout(timeout);
+              console.log(`Received: ${response.trim()}`);
+              resolve(response);
+              return;
+            }
+          }
+          clearTimeout(timeout);
+          resolve(response);
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      };
       
-      // Check if we have a complete response
-      if (response.includes('A001 OK') || response.includes('A001 NO') || response.includes('A001 BAD')) {
-        break;
-      }
-    }
-    
-    console.log(`Received: ${response.trim()}`);
-    return response;
+      readLoop();
+    });
   }
 
   async close(): Promise<void> {
@@ -352,11 +380,18 @@ const handler = async (req: Request) => {
 
     let emails: EmailSummary[] = [];
     
-    // Try to fetch real emails if IMAP is configured
+    // Try to fetch real emails if IMAP is configured with timeout
     if (mailboxConfig) {
       console.log(`Fetching real emails from IMAP for mailbox: ${targetMailboxId}`);
       try {
-        emails = await fetchEmailsFromImap(mailboxConfig);
+        // Add timeout to prevent function from hanging
+        const imapPromise = fetchEmailsFromImap(mailboxConfig);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('IMAP connection timeout')), 25000) // 25 second timeout
+        );
+        
+        emails = await Promise.race([imapPromise, timeoutPromise]) as EmailSummary[];
+        console.log(`Successfully fetched ${emails.length} emails from IMAP`);
       } catch (error) {
         console.error('Failed to fetch from IMAP, falling back to mock data:', error);
         emails = await getStoredEmails();
