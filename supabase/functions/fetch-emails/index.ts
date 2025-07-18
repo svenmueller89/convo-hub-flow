@@ -205,7 +205,7 @@ class SimpleIMAPClient {
         date: date ? this.parseDate(date) : new Date().toISOString(),
         read: isRead,
         starred: false,
-        status: isRead ? 'resolved' : 'new',
+        status: 'new', // Always start as new, status will be managed by the app
         has_attachments: false
       };
 
