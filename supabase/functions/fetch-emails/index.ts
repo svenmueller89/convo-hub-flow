@@ -107,35 +107,123 @@ class SimpleIMAPClient {
 
   private parseEmailResponse(id: string, response: string): EmailSummary | null {
     try {
-      // Parse ENVELOPE data - this is a simplified parser
-      const envelopeMatch = response.match(/ENVELOPE \(([^)]+)\)/);
-      if (!envelopeMatch) return null;
+      console.log(`Parsing email response for ID ${id}:`, response.substring(0, 200));
+      
+      // Parse ENVELOPE data - ENVELOPE has this structure:
+      // (date subject from sender reply-to to cc bcc in-reply-to message-id)
+      const envelopeMatch = response.match(/ENVELOPE \(([^)]+(?:\([^)]*\))*[^)]*)\)/);
+      if (!envelopeMatch) {
+        console.log('No ENVELOPE found in response');
+        return null;
+      }
 
       const flagsMatch = response.match(/FLAGS \(([^)]*)\)/);
       const flags = flagsMatch ? flagsMatch[1] : '';
       const isRead = flags.includes('\\Seen');
 
-      // Simple envelope parsing - in real implementation this would be more robust
+      // Parse the envelope - it's a complex nested structure
       const envelope = envelopeMatch[1];
-      const parts = envelope.split(' ');
+      console.log('Raw envelope:', envelope);
+      
+      // Simple parsing - extract quoted strings and NIL values
+      const parseEnvelopeField = (str: string, index: number): string => {
+        const fields = [];
+        let current = '';
+        let inQuotes = false;
+        let parenDepth = 0;
+        
+        for (let i = 0; i < str.length; i++) {
+          const char = str[i];
+          
+          if (char === '"' && parenDepth === 0) {
+            inQuotes = !inQuotes;
+            if (!inQuotes && current) {
+              fields.push(current);
+              current = '';
+            }
+          } else if (char === '(' && !inQuotes) {
+            parenDepth++;
+            if (parenDepth === 1) current += char;
+          } else if (char === ')' && !inQuotes) {
+            parenDepth--;
+            if (parenDepth === 0 && current) {
+              fields.push(current + char);
+              current = '';
+            } else if (parenDepth > 0) {
+              current += char;
+            }
+          } else if (char === ' ' && !inQuotes && parenDepth === 0) {
+            if (current === 'NIL') {
+              fields.push('');
+              current = '';
+            } else if (current && current !== 'NIL') {
+              fields.push(current);
+              current = '';
+            }
+          } else if (inQuotes || parenDepth > 0 || char !== ' ') {
+            current += char;
+          }
+        }
+        
+        if (current) {
+          if (current === 'NIL') {
+            fields.push('');
+          } else {
+            fields.push(current);
+          }
+        }
+        
+        console.log('Parsed envelope fields:', fields);
+        return fields[index] || '';
+      };
+      
+      // Extract fields: 0=date, 1=subject, 2=from, 3=sender, 4=reply-to, 5=to
+      const date = parseEnvelopeField(envelope, 0);
+      const subject = parseEnvelopeField(envelope, 1);
+      const from = parseEnvelopeField(envelope, 2);
+      
+      // Parse from field if it's in format ((name NIL mailbox host))
+      let fromEmail = from;
+      let fromName = 'Unknown';
+      
+      if (from.startsWith('((')) {
+        const fromMatch = from.match(/\(\("([^"]*)"[^"]*"([^"]*)"[^"]*"([^"]*)"\)\)/);
+        if (fromMatch) {
+          fromName = fromMatch[1] || 'Unknown';
+          const mailbox = fromMatch[2];
+          const host = fromMatch[3];
+          fromEmail = `${fromName} <${mailbox}@${host}>`;
+        }
+      }
       
       const email: EmailSummary = {
         id: `${this.config.id}_${id}`,
         conversation_id: `conv_${this.config.id}_${id}`,
-        from: this.cleanQuotedString(parts[2] || 'Unknown'),
-        subject: this.cleanQuotedString(parts[1] || 'No Subject'),
-        preview: `Email from ${this.cleanQuotedString(parts[2] || 'Unknown')}`,
-        date: new Date().toISOString(), // Would parse date from envelope
+        from: fromEmail || 'Unknown Sender',
+        subject: subject || 'No Subject',
+        preview: `${subject ? subject.substring(0, 100) : 'No preview available'}`,
+        date: date ? this.parseDate(date) : new Date().toISOString(),
         read: isRead,
         starred: false,
         status: isRead ? 'resolved' : 'new',
         has_attachments: false
       };
 
+      console.log('Parsed email:', email);
       return email;
     } catch (error) {
       console.error('Error parsing email response:', error);
       return null;
+    }
+  }
+
+  private parseDate(dateStr: string): string {
+    try {
+      // Remove quotes and parse
+      const cleanDate = dateStr.replace(/"/g, '');
+      return new Date(cleanDate).toISOString();
+    } catch {
+      return new Date().toISOString();
     }
   }
 

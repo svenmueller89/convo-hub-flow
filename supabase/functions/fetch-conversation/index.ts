@@ -240,14 +240,24 @@ const handler = async (req: Request) => {
     }
 
     // Check if this looks like a real email ID (contains mailbox_uid format)
-    if (conversationId.includes('_')) {
+    if (conversationId.includes('_') && conversationId.startsWith('conv_')) {
       console.log('This appears to be a real email, trying to fetch real content');
       
+      // Extract email ID from conversation ID (remove 'conv_' prefix)
+      const emailId = conversationId.replace('conv_', '');
+      
       try {
-        // Try to get real email content
-        const { data: realContent, error: realError } = await supabase.functions.invoke('fetch-email-content', {
-          body: { emailId: conversationId }
+        // Try to get real email content with timeout
+        const contentPromise = supabase.functions.invoke('fetch-email-content', {
+          body: { emailId: emailId }
         });
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Conversation fetch timeout')), 15000)
+        );
+        
+        const result = await Promise.race([contentPromise, timeoutPromise]);
+        const { data: realContent, error: realError } = result as any;
         
         if (!realError && realContent) {
           console.log('Successfully fetched real email content');
@@ -255,21 +265,21 @@ const handler = async (req: Request) => {
           // Transform the real email content to match the expected format
           const transformedResponse: ConversationDetailResponse = {
             email: {
-              id: conversationId,
-              mailbox_id: conversationId.split('_')[0],
+              id: emailId,
+              mailbox_id: emailId.split('_')[0],
               conversation_id: conversationId,
-              from: realContent.messages[0]?.from || 'Unknown Sender',
-              to: [realContent.messages[0]?.to || ''],
-              subject: realContent.subject,
-              body: realContent.messages[0]?.content || '',
+              from: realContent.messages?.[0]?.from || 'Unknown Sender',
+              to: realContent.messages?.[0]?.to ? [realContent.messages[0].to] : [''],
+              subject: realContent.subject || 'No Subject',
+              body: realContent.messages?.[0]?.content || 'No content available',
               read: false,
               starred: false,
-              date: realContent.messages[0]?.date || new Date().toISOString(),
-              attachments: realContent.messages[0]?.attachments || []
+              date: realContent.messages?.[0]?.date || new Date().toISOString(),
+              attachments: realContent.messages?.[0]?.attachments || []
             },
-            messages: realContent.messages.map((msg: any) => ({
+            messages: realContent.messages?.map((msg: any) => ({
               id: msg.id,
-              mailbox_id: conversationId.split('_')[0],
+              mailbox_id: emailId.split('_')[0],
               conversation_id: conversationId,
               from: msg.from,
               to: Array.isArray(msg.to) ? msg.to : [msg.to],
@@ -279,11 +289,11 @@ const handler = async (req: Request) => {
               starred: false,
               date: msg.date,
               attachments: msg.attachments || []
-            })),
+            })) || [],
             customer: {
-              id: `real-customer-${conversationId}`,
-              name: realContent.messages[0]?.from?.split('<')[0]?.trim() || 'Unknown Customer',
-              email: realContent.messages[0]?.from?.split('<')[1]?.replace('>', '') || '',
+              id: `real-customer-${emailId}`,
+              name: realContent.messages?.[0]?.from?.split('<')[0]?.trim() || 'Unknown Customer',
+              email: realContent.messages?.[0]?.from?.split('<')[1]?.replace('>', '') || '',
               company: ''
             }
           };
