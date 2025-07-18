@@ -1,7 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
-import Imap from 'npm:imap@0.8.19';
-import { simpleParser } from 'npm:mailparser@3.7.1';
 
 interface MailboxConfig {
   id: string;
@@ -13,114 +11,235 @@ interface MailboxConfig {
   password: string;
 }
 
-// Fetch full email content from IMAP
-async function fetchEmailContent(config: MailboxConfig, emailId: string): Promise<any> {
-  console.log(`Fetching email content for ${emailId} from IMAP server: ${config.imap_host}:${config.imap_port}`);
-  
-  return new Promise((resolve, reject) => {
-    const imap = new Imap({
-      user: config.username,
-      password: config.password,
-      host: config.imap_host,
-      port: config.imap_port,
-      tls: config.imap_encryption === 'SSL/TLS',
-      tlsOptions: { rejectUnauthorized: false },
-      authTimeout: 30000,
-      connTimeout: 60000,
-      keepalive: false
-    });
+class SimpleIMAPClient {
+  private conn: Deno.TcpConn | Deno.TlsConn | null = null;
+  private config: MailboxConfig;
 
-    function openInbox(cb: (error: Error | null, box?: any) => void) {
-      imap.openBox('INBOX', true, cb);
+  constructor(config: MailboxConfig) {
+    this.config = config;
+  }
+
+  async connect(): Promise<void> {
+    console.log(`Connecting to ${this.config.imap_host}:${this.config.imap_port}`);
+    
+    try {
+      if (this.config.imap_encryption === 'SSL/TLS') {
+        this.conn = await Deno.connectTls({
+          hostname: this.config.imap_host,
+          port: this.config.imap_port,
+        });
+      } else {
+        this.conn = await Deno.connect({
+          hostname: this.config.imap_host,
+          port: this.config.imap_port,
+        });
+      }
+
+      // Read initial greeting with timeout
+      await this.readResponseWithTimeout(10000);
+      console.log('Successfully connected to IMAP server');
+    } catch (error) {
+      console.error('Failed to connect to IMAP server:', error);
+      throw new Error(`IMAP connection failed: ${error.message}`);
     }
+  }
 
-    imap.once('ready', function() {
-      console.log('IMAP connection ready for email content fetch');
-      openInbox(function(err, box) {
-        if (err) {
-          console.error('Error opening inbox for content fetch:', err);
-          reject(err);
-          return;
+  async authenticate(): Promise<void> {
+    console.log('Authenticating...');
+    await this.sendCommand(`LOGIN ${this.config.username} ${this.config.password}`);
+  }
+
+  async selectInbox(): Promise<void> {
+    console.log('Selecting INBOX...');
+    await this.sendCommand('SELECT INBOX');
+  }
+
+  async fetchEmailByUid(uid: string): Promise<any> {
+    console.log(`Fetching email with UID: ${uid}`);
+    
+    try {
+      // Fetch email headers and content
+      const headerResponse = await this.sendCommand(
+        `FETCH ${uid} (FLAGS ENVELOPE BODY[TEXT] BODY[HEADER])`
+      );
+      
+      return this.parseEmailContent(uid, headerResponse);
+    } catch (error) {
+      console.error(`Error fetching email ${uid}:`, error);
+      throw error;
+    }
+  }
+
+  private parseEmailContent(uid: string, response: string): any {
+    try {
+      console.log('Parsing email content for UID:', uid);
+      
+      // Extract subject, from, to from ENVELOPE
+      const envelopeMatch = response.match(/ENVELOPE \(([^)]+)\)/);
+      const flagsMatch = response.match(/FLAGS \(([^)]*)\)/);
+      const bodyTextMatch = response.match(/BODY\[TEXT\]\s*{[^}]*}\s*([^]*?)(?=\s*\)|\s*$)/);
+      const bodyHeaderMatch = response.match(/BODY\[HEADER\]\s*{[^}]*}\s*([^]*?)(?=\s*BODY\[TEXT\])/);
+      
+      const flags = flagsMatch ? flagsMatch[1] : '';
+      const isRead = flags.includes('\\Seen');
+      
+      let subject = 'No Subject';
+      let from = 'Unknown Sender';
+      let to = '';
+      let date = new Date().toISOString();
+      let content = 'No content available';
+      
+      // Parse envelope if available
+      if (envelopeMatch) {
+        const envelope = envelopeMatch[1];
+        const parts = envelope.split(' ');
+        if (parts.length > 1) {
+          subject = this.cleanQuotedString(parts[1] || 'No Subject');
         }
-
-        // Extract UID from email ID (format: mailboxId_uid)
-        const uid = emailId.split('_').pop();
-        if (!uid) {
-          reject(new Error('Invalid email ID format'));
-          return;
+        if (parts.length > 2) {
+          from = this.cleanQuotedString(parts[2] || 'Unknown Sender');
         }
-
-        console.log(`Fetching content for UID: ${uid}`);
-
-        // Fetch the full email by UID
-        const fetch = imap.fetch(uid, { 
-          bodies: '', // Fetch entire message
-          struct: true,
-          markSeen: false // Don't mark as read automatically
-        });
-
-        let emailData: any = null;
-
-        fetch.on('message', function(msg: any) {
-          msg.on('body', function(stream: any) {
-            let buffer = '';
-            stream.on('data', function(chunk: any) {
-              buffer += chunk.toString();
-            });
-            
-            stream.once('end', function() {
-              // Parse the email using mailparser
-              simpleParser(buffer)
-                .then(parsed => {
-                  emailData = {
-                    subject: parsed.subject || 'No Subject',
-                    from: parsed.from?.text || 'Unknown Sender',
-                    to: parsed.to?.text || '',
-                    date: parsed.date || new Date(),
-                    text: parsed.text || '',
-                    html: parsed.html || '',
-                    attachments: parsed.attachments || []
-                  };
-                  console.log('Email parsed successfully');
-                })
-                .catch(error => {
-                  console.error('Error parsing email:', error);
-                  reject(error);
-                });
-            });
-          });
-
-          msg.once('attributes', function(attrs: any) {
-            // Could process attributes here if needed
-          });
-        });
-
-        fetch.once('error', function(err: Error) {
-          console.error('Fetch error for email content:', err);
-          reject(err);
-        });
-
-        fetch.once('end', function() {
-          console.log('Finished fetching email content');
-          imap.end();
-          
-          if (emailData) {
-            resolve(emailData);
-          } else {
-            reject(new Error('Failed to parse email content'));
+      }
+      
+      // Get email content
+      if (bodyTextMatch) {
+        content = bodyTextMatch[1].trim();
+      }
+      
+      // Parse headers for better from/to information
+      if (bodyHeaderMatch) {
+        const headers = bodyHeaderMatch[1];
+        const fromMatch = headers.match(/From:\s*([^\r\n]+)/i);
+        const toMatch = headers.match(/To:\s*([^\r\n]+)/i);
+        const subjectMatch = headers.match(/Subject:\s*([^\r\n]+)/i);
+        const dateMatch = headers.match(/Date:\s*([^\r\n]+)/i);
+        
+        if (fromMatch) from = fromMatch[1].trim();
+        if (toMatch) to = toMatch[1].trim();
+        if (subjectMatch) subject = subjectMatch[1].trim();
+        if (dateMatch) {
+          try {
+            date = new Date(dateMatch[1].trim()).toISOString();
+          } catch {
+            date = new Date().toISOString();
           }
-        });
-      });
-    });
+        }
+      }
 
-    imap.once('error', function(err: Error) {
-      console.error('IMAP connection error for content fetch:', err);
-      reject(err);
-    });
+      return {
+        id: `${this.config.id}_${uid}`,
+        subject: subject,
+        from: from,
+        to: to,
+        date: date,
+        content: content,
+        html: content.includes('<') ? content : `<pre>${content}</pre>`,
+        text: content.replace(/<[^>]*>/g, ''),
+        attachments: [],
+        read: isRead
+      };
+    } catch (error) {
+      console.error('Error parsing email content:', error);
+      throw error;
+    }
+  }
 
-    console.log('Connecting to IMAP for email content...');
-    imap.connect();
-  });
+  private cleanQuotedString(str: string): string {
+    return str.replace(/^"/, '').replace(/"$/, '').replace(/NIL/, 'Unknown');
+  }
+
+  private async sendCommand(command: string): Promise<string> {
+    if (!this.conn) throw new Error('Not connected');
+    
+    const fullCommand = `A001 ${command}\r\n`;
+    console.log(`Sending: ${fullCommand.trim()}`);
+    
+    const encoder = new TextEncoder();
+    await this.conn.write(encoder.encode(fullCommand));
+    
+    return await this.readResponseWithTimeout(15000);
+  }
+
+  private async readResponseWithTimeout(timeoutMs: number): Promise<string> {
+    if (!this.conn) throw new Error('Not connected');
+    
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`IMAP response timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      let response = '';
+      const decoder = new TextDecoder();
+      const buffer = new Uint8Array(4096);
+      
+      const readLoop = async () => {
+        try {
+          while (true) {
+            const bytesRead = await this.conn!.read(buffer);
+            if (bytesRead === null) break;
+            
+            const chunk = decoder.decode(buffer.subarray(0, bytesRead));
+            response += chunk;
+            
+            // Check if we have a complete response
+            if (response.includes('A001 OK') || response.includes('A001 NO') || response.includes('A001 BAD') || 
+                response.includes('* OK')) {
+              clearTimeout(timeout);
+              console.log(`Received: ${response.trim()}`);
+              resolve(response);
+              return;
+            }
+          }
+          clearTimeout(timeout);
+          resolve(response);
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      };
+      
+      readLoop();
+    });
+  }
+
+  async close(): Promise<void> {
+    if (this.conn) {
+      try {
+        await this.sendCommand('LOGOUT');
+      } catch (error) {
+        console.error('Error during logout:', error);
+      }
+      this.conn.close();
+      this.conn = null;
+    }
+  }
+}
+
+// Fetch email content using custom IMAP client
+async function fetchEmailContent(config: MailboxConfig, emailId: string): Promise<any> {
+  const client = new SimpleIMAPClient(config);
+  
+  try {
+    await client.connect();
+    await client.authenticate();
+    await client.selectInbox();
+    
+    // Extract UID from email ID
+    const uid = emailId.split('_').pop();
+    if (!uid) {
+      throw new Error('Invalid email ID format');
+    }
+    
+    const emailContent = await client.fetchEmailByUid(uid);
+    await client.close();
+    
+    console.log('Successfully fetched email content from IMAP');
+    return emailContent;
+  } catch (error) {
+    console.error('IMAP error:', error);
+    await client.close();
+    throw error;
+  }
 }
 
 const handler = async (req: Request) => {
@@ -194,7 +313,13 @@ const handler = async (req: Request) => {
           password: mailbox.password
         };
         
-        const emailContent = await fetchEmailContent(mailboxConfig, emailId);
+        // Add timeout to prevent function from hanging
+        const imapPromise = fetchEmailContent(mailboxConfig, emailId);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email content fetch timeout')), 20000) // 20 second timeout
+        );
+        
+        const emailContent = await Promise.race([imapPromise, timeoutPromise]);
         
         // Format response to match expected conversation format
         const conversation = {
@@ -208,11 +333,7 @@ const handler = async (req: Request) => {
             subject: emailContent.subject,
             content: emailContent.html || emailContent.text || 'No content available',
             date: emailContent.date,
-            attachments: emailContent.attachments.map((att: any) => ({
-              filename: att.filename,
-              size: att.size,
-              contentType: att.contentType
-            }))
+            attachments: emailContent.attachments || []
           }]
         };
 
