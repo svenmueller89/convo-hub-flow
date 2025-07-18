@@ -170,11 +170,12 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
   
   const { customer } = conversation;
   
-  const customerName = customer?.name || conversation.email.from.split('<')[0].trim();
+  const customerName = customer?.name || 
+    (conversation.email?.from ? conversation.email.from.split('<')[0].trim() : 'Unknown Customer');
   
   const customerCompany = customer?.company || 
     (senderEmail && !senderEmail.includes('@gmail.com') && !senderEmail.includes('@outlook.com') && !senderEmail.includes('@yahoo.com') ? 
-      senderEmail.split('@')[1].split('.')[0].charAt(0).toUpperCase() + senderEmail.split('@')[1].split('.')[0].slice(1) : 
+      senderEmail.split('@')[1]?.split('.')[0]?.charAt(0).toUpperCase() + senderEmail.split('@')[1]?.split('.')[0]?.slice(1) : 
       undefined);
   
   const inferredWebsite = senderEmail && !senderEmail.includes('@gmail.com') && !senderEmail.includes('@outlook.com') && !senderEmail.includes('@yahoo.com') ?
@@ -184,11 +185,12 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
   const totalMessages = conversation.messages?.length || 0;
   
   const initials = customerName
-    .split(' ')
-    .map(name => name[0])
+    ?.split(' ')
+    .map(name => name?.[0])
+    .filter(Boolean)
     .join('')
     .substring(0, 2)
-    .toUpperCase();
+    .toUpperCase() || 'UK';
   
   return (
     <Card className="h-full flex flex-col">
@@ -252,10 +254,12 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
           <p className="text-sm text-muted-foreground">
             {totalMessages} message{totalMessages !== 1 ? 's' : ''} in this thread
           </p>
-          <p className="text-sm text-muted-foreground">
-            First message: {format(new Date(conversation.messages[0].date), 'MMM dd, yyyy')}
-          </p>
-          {totalMessages > 1 && (
+          {conversation.messages && conversation.messages.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              First message: {format(new Date(conversation.messages[0].date), 'MMM dd, yyyy')}
+            </p>
+          )}
+          {totalMessages > 1 && conversation.messages && (
             <p className="text-sm text-muted-foreground">
               Last message: {format(new Date(conversation.messages[totalMessages - 1].date), 'MMM dd, yyyy')}
             </p>
