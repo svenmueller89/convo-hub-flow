@@ -123,77 +123,25 @@ class SimpleIMAPClient {
 
       // Parse the envelope - it's a complex nested structure
       const envelope = envelopeMatch[1];
-      console.log('Raw envelope:', envelope);
+      console.log('Raw envelope:', envelope.substring(0, 100));
       
-      // Simple parsing - extract quoted strings and NIL values
-      const parseEnvelopeField = (str: string, index: number): string => {
-        const fields = [];
-        let current = '';
-        let inQuotes = false;
-        let parenDepth = 0;
-        
-        for (let i = 0; i < str.length; i++) {
-          const char = str[i];
-          
-          if (char === '"' && parenDepth === 0) {
-            inQuotes = !inQuotes;
-            if (!inQuotes && current) {
-              fields.push(current);
-              current = '';
-            }
-          } else if (char === '(' && !inQuotes) {
-            parenDepth++;
-            if (parenDepth === 1) current += char;
-          } else if (char === ')' && !inQuotes) {
-            parenDepth--;
-            if (parenDepth === 0 && current) {
-              fields.push(current + char);
-              current = '';
-            } else if (parenDepth > 0) {
-              current += char;
-            }
-          } else if (char === ' ' && !inQuotes && parenDepth === 0) {
-            if (current === 'NIL') {
-              fields.push('');
-              current = '';
-            } else if (current && current !== 'NIL') {
-              fields.push(current);
-              current = '';
-            }
-          } else if (inQuotes || parenDepth > 0 || char !== ' ') {
-            current += char;
-          }
-        }
-        
-        if (current) {
-          if (current === 'NIL') {
-            fields.push('');
-          } else {
-            fields.push(current);
-          }
-        }
-        
-        console.log('Parsed envelope fields:', fields);
-        return fields[index] || '';
-      };
+      // Parse envelope fields properly
+      const fields = this.parseEnvelopeFields(envelope);
+      console.log('Parsed envelope fields:', fields);
+      
+      let date = new Date().toISOString();
+      let subject = 'No Subject';
+      let fromEmail = 'Unknown Sender';
       
       // Extract fields: 0=date, 1=subject, 2=from, 3=sender, 4=reply-to, 5=to
-      const date = parseEnvelopeField(envelope, 0);
-      const subject = parseEnvelopeField(envelope, 1);
-      const from = parseEnvelopeField(envelope, 2);
-      
-      // Parse from field if it's in format ((name NIL mailbox host))
-      let fromEmail = from;
-      let fromName = 'Unknown';
-      
-      if (from.startsWith('((')) {
-        const fromMatch = from.match(/\(\("([^"]*)"[^"]*"([^"]*)"[^"]*"([^"]*)"\)\)/);
-        if (fromMatch) {
-          fromName = fromMatch[1] || 'Unknown';
-          const mailbox = fromMatch[2];
-          const host = fromMatch[3];
-          fromEmail = `${fromName} <${mailbox}@${host}>`;
-        }
+      if (fields.length > 0 && fields[0] !== 'NIL') {
+        date = this.parseDate(fields[0]) || date;
+      }
+      if (fields.length > 1 && fields[1] !== 'NIL') {
+        subject = this.cleanQuotedString(fields[1]);
+      }
+      if (fields.length > 2 && fields[2] !== 'NIL') {
+        fromEmail = this.parseEmailAddress(fields[2]);
       }
       
       const email: EmailSummary = {
@@ -202,7 +150,7 @@ class SimpleIMAPClient {
         from: fromEmail || 'Unknown Sender',
         subject: subject || 'No Subject',
         preview: `${subject ? subject.substring(0, 100) : 'No preview available'}`,
-        date: date ? this.parseDate(date) : new Date().toISOString(),
+        date: date,
         read: isRead,
         starred: false,
         status: 'new', // Always start as new, status will be managed by the app
@@ -215,6 +163,71 @@ class SimpleIMAPClient {
       console.error('Error parsing email response:', error);
       return null;
     }
+  }
+
+  private parseEnvelopeFields(envelope: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let parenDepth = 0;
+    let i = 0;
+    
+    while (i < envelope.length) {
+      const char = envelope[i];
+      
+      if (char === '"' && envelope[i-1] !== '\\') {
+        inQuotes = !inQuotes;
+        current += char;
+      } else if (!inQuotes && char === '(') {
+        parenDepth++;
+        current += char;
+      } else if (!inQuotes && char === ')') {
+        parenDepth--;
+        current += char;
+      } else if (!inQuotes && char === ' ' && parenDepth === 0) {
+        if (current.trim()) {
+          fields.push(current.trim());
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+      i++;
+    }
+    
+    if (current.trim()) {
+      fields.push(current.trim());
+    }
+    
+    return fields;
+  }
+
+  private parseEmailAddress(addressField: string): string {
+    if (!addressField || addressField === 'NIL') return 'Unknown Sender';
+    
+    // Parse address structure like ((name NIL local domain))
+    const match = addressField.match(/\(\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)\)/);
+    if (match) {
+      const [, name, local, domain] = match;
+      if (name && name !== 'NIL') {
+        return `${name} <${local}@${domain}>`;
+      } else {
+        return `${local}@${domain}`;
+      }
+    }
+    
+    // Fallback for simpler formats
+    const simpleMatch = addressField.match(/\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)/);
+    if (simpleMatch) {
+      const [, name, local, domain] = simpleMatch;
+      if (name && name !== 'NIL') {
+        return `${name} <${local}@${domain}>`;
+      } else {
+        return `${local}@${domain}`;
+      }
+    }
+    
+    return addressField;
   }
 
   private parseDate(dateStr: string): string {

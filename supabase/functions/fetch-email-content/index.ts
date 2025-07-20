@@ -77,8 +77,8 @@ class SimpleIMAPClient {
       // Extract subject, from, to from ENVELOPE
       const envelopeMatch = response.match(/ENVELOPE \(([^)]+)\)/);
       const flagsMatch = response.match(/FLAGS \(([^)]*)\)/);
-      const bodyTextMatch = response.match(/BODY\[TEXT\]\s*{[^}]*}\s*([^]*?)(?=\s*\)|\s*$)/);
-      const bodyHeaderMatch = response.match(/BODY\[HEADER\]\s*{[^}]*}\s*([^]*?)(?=\s*BODY\[TEXT\])/);
+      const bodyTextMatch = response.match(/BODY\[TEXT\]\s*{[^}]*}\s*([^]*?)(?=\s*BODY\[HEADER\]|\s*\)|\s*$)/);
+      const bodyHeaderMatch = response.match(/BODY\[HEADER\]\s*{[^}]*}\s*([^]*?)(?=\s*\)|\s*$)/);
       
       const flags = flagsMatch ? flagsMatch[1] : '';
       const isRead = flags.includes('\\Seen');
@@ -89,15 +89,22 @@ class SimpleIMAPClient {
       let date = new Date().toISOString();
       let content = 'No content available';
       
-      // Parse envelope if available
+      // Parse envelope properly - ENVELOPE structure is (date subject from sender reply-to to cc bcc in-reply-to message-id)
       if (envelopeMatch) {
-        const envelope = envelopeMatch[1];
-        const parts = envelope.split(' ');
-        if (parts.length > 1) {
-          subject = this.cleanQuotedString(parts[1] || 'No Subject');
-        }
-        if (parts.length > 2) {
-          from = this.cleanQuotedString(parts[2] || 'Unknown Sender');
+        try {
+          const envelope = envelopeMatch[1];
+          console.log('Raw envelope:', envelope.substring(0, 100));
+          
+          // Parse the envelope fields properly
+          const fields = this.parseEnvelopeFields(envelope);
+          console.log('Parsed envelope fields:', fields);
+          
+          if (fields.length > 0) date = this.parseDate(fields[0]) || date;
+          if (fields.length > 1) subject = this.cleanQuotedString(fields[1] || 'No Subject');
+          if (fields.length > 2) from = this.parseEmailAddress(fields[2]) || 'Unknown Sender';
+          if (fields.length > 5) to = this.parseEmailAddress(fields[5]) || '';
+        } catch (error) {
+          console.error('Error parsing envelope:', error);
         }
       }
       
@@ -145,7 +152,89 @@ class SimpleIMAPClient {
   }
 
   private cleanQuotedString(str: string): string {
-    return str.replace(/^"/, '').replace(/"$/, '').replace(/NIL/, 'Unknown');
+    if (!str || str === 'NIL') return '';
+    return str.replace(/^"/, '').replace(/"$/, '').trim();
+  }
+
+  private parseEnvelopeFields(envelope: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let parenDepth = 0;
+    let i = 0;
+    
+    while (i < envelope.length) {
+      const char = envelope[i];
+      
+      if (char === '"' && envelope[i-1] !== '\\') {
+        inQuotes = !inQuotes;
+        current += char;
+      } else if (!inQuotes && char === '(') {
+        parenDepth++;
+        current += char;
+      } else if (!inQuotes && char === ')') {
+        parenDepth--;
+        current += char;
+      } else if (!inQuotes && char === ' ' && parenDepth === 0) {
+        if (current.trim()) {
+          fields.push(current.trim());
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+      i++;
+    }
+    
+    if (current.trim()) {
+      fields.push(current.trim());
+    }
+    
+    return fields;
+  }
+
+  private parseEmailAddress(addressField: string): string {
+    if (!addressField || addressField === 'NIL') return '';
+    
+    // Parse address structure like ((name NIL local domain))
+    const match = addressField.match(/\(\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)\)/);
+    if (match) {
+      const [, name, local, domain] = match;
+      if (name && name !== 'NIL') {
+        return `${name} <${local}@${domain}>`;
+      } else {
+        return `${local}@${domain}`;
+      }
+    }
+    
+    // Fallback for simpler formats
+    const simpleMatch = addressField.match(/\(([^)]+)\)/);
+    if (simpleMatch) {
+      const parts = simpleMatch[1].split(' ');
+      if (parts.length >= 4) {
+        const name = this.cleanQuotedString(parts[0]);
+        const local = this.cleanQuotedString(parts[2]);
+        const domain = this.cleanQuotedString(parts[3]);
+        if (name && name !== 'NIL') {
+          return `${name} <${local}@${domain}>`;
+        } else {
+          return `${local}@${domain}`;
+        }
+      }
+    }
+    
+    return addressField;
+  }
+
+  private parseDate(dateStr: string): string | null {
+    if (!dateStr || dateStr === 'NIL') return null;
+    
+    try {
+      const cleanDate = this.cleanQuotedString(dateStr);
+      return new Date(cleanDate).toISOString();
+    } catch {
+      return null;
+    }
   }
 
   private async sendCommand(command: string): Promise<string> {
