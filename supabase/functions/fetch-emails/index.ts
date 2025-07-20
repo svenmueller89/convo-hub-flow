@@ -205,29 +205,69 @@ class SimpleIMAPClient {
   private parseEmailAddress(addressField: string): string {
     if (!addressField || addressField === 'NIL') return 'Unknown Sender';
     
+    console.log('Parsing address field:', addressField);
+    
     // Parse address structure like ((name NIL local domain))
-    const match = addressField.match(/\(\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)\)/);
-    if (match) {
-      const [, name, local, domain] = match;
-      if (name && name !== 'NIL') {
+    const doubleParenMatch = addressField.match(/\(\(("([^"]*)" NIL "([^"]*)" "([^"]*)")\)\)/);
+    if (doubleParenMatch) {
+      const [, , name, local, domain] = doubleParenMatch;
+      if (name && name !== 'NIL' && name.trim()) {
         return `${name} <${local}@${domain}>`;
       } else {
         return `${local}@${domain}`;
       }
     }
     
-    // Fallback for simpler formats
-    const simpleMatch = addressField.match(/\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)/);
-    if (simpleMatch) {
-      const [, name, local, domain] = simpleMatch;
-      if (name && name !== 'NIL') {
+    // Parse address structure like (name NIL local domain)
+    const singleParenMatch = addressField.match(/\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)/);
+    if (singleParenMatch) {
+      const [, name, local, domain] = singleParenMatch;
+      if (name && name !== 'NIL' && name.trim()) {
         return `${name} <${local}@${domain}>`;
       } else {
         return `${local}@${domain}`;
       }
     }
     
-    return addressField;
+    // Handle encoded names like =?UTF-8?B?...
+    const encodedMatch = addressField.match(/\("([^"]*)" NIL "([^"]*)" "([^"]*)"\)/);
+    if (encodedMatch) {
+      const [, encodedName, local, domain] = encodedMatch;
+      let name = encodedName;
+      
+      // Decode base64 encoded names
+      if (encodedName.includes('=?UTF-8?B?')) {
+        try {
+          const base64Part = encodedName.match(/=\?UTF-8\?B\?([^?]+)\?=/);
+          if (base64Part) {
+            name = atob(base64Part[1]);
+          }
+        } catch (e) {
+          console.log('Failed to decode base64 name:', e);
+        }
+      }
+      
+      // Decode quoted-printable encoded names
+      if (encodedName.includes('=?utf-8?Q?')) {
+        try {
+          const qpPart = encodedName.match(/=\?utf-8\?Q\?([^?]+)\?=/);
+          if (qpPart) {
+            name = decodeURIComponent(qpPart[1].replace(/=/g, '%'));
+          }
+        } catch (e) {
+          console.log('Failed to decode quoted-printable name:', e);
+        }
+      }
+      
+      if (name && name !== 'NIL' && name.trim()) {
+        return `${name} <${local}@${domain}>`;
+      } else {
+        return `${local}@${domain}`;
+      }
+    }
+    
+    // Return the original if nothing matches
+    return addressField.substring(0, 50); // Limit length for safety
   }
 
   private parseDate(dateStr: string): string {
@@ -241,7 +281,8 @@ class SimpleIMAPClient {
   }
 
   private cleanQuotedString(str: string): string {
-    return str.replace(/^"/, '').replace(/"$/, '').replace(/NIL/, 'Unknown');
+    if (!str || str === 'NIL') return '';
+    return str.replace(/^"/, '').replace(/"$/, '').trim();
   }
 
   private async sendCommand(command: string): Promise<string> {

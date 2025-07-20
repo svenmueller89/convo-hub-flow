@@ -200,6 +200,42 @@ const mockCustomers = {
   }
 };
 
+// Helper functions for parsing email addresses
+function extractNameFromEmailAddress(emailStr: string): string {
+  if (!emailStr) return 'Unknown Customer';
+  
+  // Handle format like "Name <email@domain.com>"
+  const match = emailStr.match(/^([^<]+)<[^>]+>$/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Handle format like "email@domain.com"
+  const emailMatch = emailStr.match(/^([^@]+)@/);
+  if (emailMatch) {
+    return emailMatch[1].trim();
+  }
+  
+  return emailStr;
+}
+
+function extractEmailFromEmailAddress(emailStr: string): string {
+  if (!emailStr) return '';
+  
+  // Handle format like "Name <email@domain.com>"
+  const match = emailStr.match(/<([^>]+)>/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Handle format like "email@domain.com"
+  if (emailStr.includes('@')) {
+    return emailStr.trim();
+  }
+  
+  return '';
+}
+
 const handler = async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -292,8 +328,8 @@ const handler = async (req: Request) => {
             })) || [],
             customer: {
               id: `real-customer-${emailId}`,
-              name: realContent.messages?.[0]?.from?.split('<')[0]?.trim() || 'Unknown Customer',
-              email: realContent.messages?.[0]?.from?.split('<')[1]?.replace('>', '') || '',
+              name: extractNameFromEmailAddress(realContent.messages?.[0]?.from) || 'Unknown Customer',
+              email: extractEmailFromEmailAddress(realContent.messages?.[0]?.from) || '',
               company: ''
             }
           };
